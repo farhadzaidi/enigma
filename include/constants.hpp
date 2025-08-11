@@ -10,6 +10,15 @@
 
 #define START_POS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
 
+#define FIRST_RANK      0
+#define SECOND_RANK     1
+#define THIRD_RANK      2
+#define FOURTH_RANK     3
+#define FIFTH_RANK      4
+#define SIXTH_RANK      5    
+#define SEVENTH_RANK    6
+#define EIGHTH_RANK     7
+
 // Little Endian Rank-File Mapping
 // a1 --> bit 0
 // h8 --> bit 63
@@ -24,10 +33,11 @@ enum Square {
     a8, b8, c8, d8, e8, f8, g8, h8,
 };
 
+
 enum Color {
     WHITE,
     BLACK,
-    EMPTY
+    NO_COLOR
 };
 
 enum Piece {

@@ -33,8 +33,17 @@ public:
     uint64_t get_occupied_squares();
     uint64_t get_empty_squares();
     void load_from_fen(const std::string& fen = START_POS_FEN);
+    void remove_piece(int color, int piece, int square);
+    void place_piece(int color, int piece, int square);
+    void set_en_passant_target(int color, int piece, int from, int to);
+    void handle_capture(int capture_square, int moving_color, int flag);
+    void handle_castle(int castle_square);
+    void handle_castling_rights(int color, int piece);
     void make_move(uint16_t move);
     void unmake_move(uint16_t move);
+
+
+
     void print_board();
 };
 

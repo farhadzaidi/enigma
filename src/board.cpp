@@ -14,7 +14,7 @@ Board::Board() :
     castling_rights(NO_CASTLING_RIGHTS),
     en_passant_target(NO_EN_PASSANT_TARGET) {
         piece_lookup.fill(EMPTY);
-        color_lookup.fill(EMPTY);
+        color_lookup.fill(NO_COLOR);
     }
 
 // Returns a bitboard with all bits corresponding to occupied squares set
@@ -25,6 +25,22 @@ uint64_t Board::get_occupied_squares() {
 // Returns a bitboard with all bits corresponding to empty squares set
 uint64_t Board::get_empty_squares() {
     return ~(colors[WHITE] | colors[BLACK]);
+}
+
+void Board::remove_piece(int color, int piece, int square) {
+    uint64_t mask = ~get_mask(square);
+    pieces[color][piece] &= mask;
+    colors[color] &= mask;
+    piece_lookup[square] = EMPTY;
+    color_lookup[square] = NO_COLOR;
+}
+
+void Board::place_piece(int color, int piece, int square) {
+    uint64_t mask = get_mask(square);
+    pieces[color][piece] |= mask;
+    colors[color] |= mask;
+    piece_lookup[square] = piece;
+    color_lookup[square] = color;
 }
 
 void Board::load_from_fen(const std::string& fen) {
@@ -69,40 +85,32 @@ void Board::load_from_fen(const std::string& fen) {
         }
 
         // Must be a piece
-        int square_index = get_square_index(rank, file);
+        int square = get_square_index(rank, file);
         int color = std::isupper(c) ? WHITE : BLACK;
-        int type;
+        int piece;
 
         switch (std::toupper(c)) {
             case 'P':
-                type = PAWN;
+                piece = PAWN;
                 break;
             case 'B':
-                type = BISHOP;
+                piece = BISHOP;
                 break;
             case 'N':
-                type = KNIGHT;
+                piece = KNIGHT;
                 break;
             case 'R':
-                type = ROOK; 
+                piece = ROOK; 
                 break;
             case 'Q':
-                type = QUEEN;
+                piece = QUEEN;
                 break;
             case 'K':
-                type = KING;
+                piece = KING;
                 break;
         }
 
-        // Set the bit corresponding to the square index for the given piece
-        uint64_t mask = uint64_t{1} << square_index;
-        pieces[color][type] |= mask;
-        colors[color] |= mask;
-
-        // Update piece and color lookup tables
-        piece_lookup[square_index] = type;
-        color_lookup[square_index] = color;
-
+        place_piece(color, piece, square);
         file++;
     }
 
@@ -114,16 +122,16 @@ void Board::load_from_fen(const std::string& fen) {
     for (char c : castling_rights) {
         switch (c) {
             case 'K':
-                this->castling_rights |= WHITE_KING_SIDE;
+                this->castling_rights |= WHITE_SHORT;
                 break;
             case 'Q':
-                this->castling_rights |= WHITE_QUEEN_SIDE;
+                this->castling_rights |= WHITE_LONG;
                 break;
             case 'k':
-                this->castling_rights |= BLACK_KING_SIDE;
+                this->castling_rights |= BLACK_SHORT;
                 break;
             case 'q':
-                this->castling_rights |= BLACK_QUEEN_SIDE;
+                this->castling_rights |= BLACK_LONG;
                 break;
         }
     }
@@ -143,54 +151,120 @@ void Board::load_from_fen(const std::string& fen) {
     this->fullmoves = std::stoi(fullmoves);
 }
 
-void Board::make_move(uint16_t move) {
-    int from = get_from(move);
-    int to = get_to(move);
-    int mtype = get_mtype(move);
-    int flag = get_flag(move);
+void Board::set_en_passant_target(int color, int piece, int from, int to) {
+    if (piece != PAWN) return;
 
-    uint64_t from_mask = uint64_t{1} << from;
-    uint64_t to_mask = uint64_t{1} << to;
-
-    int moving_piece = piece_lookup[from];
-    int moving_color = color_lookup[from];
-
-    // Unset the "from" bit for the moving piece and color bitboards
-    pieces[moving_color][moving_piece] ^= from_mask;
-    colors[moving_color] ^= from_mask;
-
-    // Similarly, empty the "from" square for the piece and color lookup tables
-    piece_lookup[from] = EMPTY;
-    color_lookup[from] = EMPTY;
-
-    if (mtype == CAPTURE) {
-        int capture_square = to;
-        uint64_t capture_mask = to_mask;
-
-        if (flag == EN_PASSANT) {
-            // In the case of en passant, the captured piece (pawn) is one rank
-            // "behind" the "to" square. "Behind" can either be south or north
-            // depending on whether the moving piece is white or black, respectively
-            if (moving_color == WHITE) {
-                capture_square -= 8;
-                capture_mask = shift_south(capture_mask);
-            } else {
-                capture_square += 8;
-                capture_mask = shift_north(capture_mask);
-            }
-        }
-
-        int captured_piece = piece_lookup[capture_square];
-        int captured_color = color_lookup[capture_square];
-
-        // Remove the captured piece from the respective piece and color bitboards
-        pieces[captured_color][captured_piece] ^= capture_mask;
-        colors[captured_color] ^= capture_mask;
-
-        // Remove the captured piece from the piece and color lookup tables
-        piece_lookup[capture_square] = EMPTY;
-        color_lookup[capture_square] = EMPTY;
+    // White moves a pawn 2 squares north
+    if (
+        color == WHITE
+        && get_rank(from) == SECOND_RANK
+        && get_rank(to) == FOURTH_RANK
+    ) {
+        en_passant_target = to - 8; // Directly behind the white pawn (south)
+    } 
+    
+    // Black moves a pawn 2 squares south
+    else if (
+        color == BLACK
+        && get_rank(from) == SEVENTH_RANK
+        && get_rank(to) == FIFTH_RANK
+    ) {
+        en_passant_target = to + 8; // Directly behind the black pawn (north)
     }
+}
+
+void Board::handle_capture(int capture_square, int moving_color, int flag) {
+    if (flag == EN_PASSANT) {
+        // In the case of en passant, the captured piece (pawn) is one rank
+        // "behind" the "to" square. "Behind" can either be south or north
+        // depending on whether the moving piece is white or black, respectively
+        capture_square = moving_color == WHITE
+            ? capture_square - 8  // 1 step south
+            : capture_square + 8; // 1 step north
+    }
+
+    int captured_color = color_lookup[capture_square];
+    int captured_piece = piece_lookup[capture_square];
+    remove_piece(captured_color, captured_piece, capture_square);
+}
+
+void Board::handle_castle(int castle_square) {
+    switch (castle_square) {
+        case c1: // White long castle
+            remove_piece(WHITE, ROOK, a1);
+            place_piece(WHITE, ROOK, d1);
+            break;
+        case g1: // White short castle
+            remove_piece(WHITE, ROOK, h1);
+            place_piece(WHITE, ROOK, f1);
+            break;
+        case c8: // Black long castle
+            remove_piece(BLACK, ROOK, a8);
+            place_piece(BLACK, ROOK, d8);
+            break;
+        case g8: // Black short castle
+            remove_piece(BLACK, ROOK, h8);
+            place_piece(BLACK, ROOK, f8);
+            break;
+    }
+}
+
+void Board::handle_castling_rights(int color, int piece) {
+    // Castling rights checks:
+    // If the king moves --> revoke all castling rights for that color
+    // If any corner rook is not in its starting position --> revoke castling
+    // rights for that color and side
+
+    if (color == WHITE && piece == KING) {
+        castling_rights &= ~WHITE_SHORT;
+        castling_rights &= ~WHITE_LONG;
+    }
+
+    if (color == BLACK && piece == KING) {
+        castling_rights &= ~BLACK_SHORT;
+        castling_rights &= ~BLACK_LONG;
+    }
+
+    // King-side rook
+    bool white_king_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(h1)) == 0;
+    if (white_king_side_rook_moved) {
+        castling_rights &= ~WHITE_SHORT;
+    }
+
+    // Queen-side rook
+    bool white_queen_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(a1)) == 0;
+    if (white_queen_side_rook_moved) {
+        castling_rights &= ~WHITE_LONG;
+    }
+
+    // King-side rook
+    bool black_king_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(h8)) == 0;
+    if (black_king_side_rook_moved) {
+        castling_rights &= ~BLACK_SHORT;
+    }
+
+    // Queen-side rook
+    bool black_queen_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(a8)) == 0;
+    if (black_queen_side_rook_moved) {
+        castling_rights &= ~BLACK_LONG;
+    }
+}
+
+void Board::make_move(uint16_t move) {
+    int from    = get_from(move);
+    int to      = get_to(move);
+    int mtype   = get_mtype(move);
+    int flag    = get_flag(move);
+
+    int moving_color = color_lookup[from];
+    int moving_piece = piece_lookup[from];
+
+    set_en_passant_target(moving_color, moving_piece, from, to);
+
+    remove_piece(moving_color, moving_piece, from);
+
+    // Handle capture logic including en passant
+    if (mtype == CAPTURE) handle_capture(to, moving_color, flag);
 
     // Check if the move is a promotion; if so, update the moving piece
     switch (flag) {
@@ -208,86 +282,16 @@ void Board::make_move(uint16_t move) {
             break;
     }
 
-    // Set the "to" bit for the moving piece and color bitboards
-    pieces[moving_color][moving_piece] ^= to_mask;
-    colors[moving_color] ^= to_mask; // This would be the same regardless of promotion
+    // After changing moving_piece (in the case of a promotion), we can now
+    // place the piece on the "to" square
+    place_piece(moving_color, moving_piece, to);
 
-    // Similarly, update the "to" square for the piece and color lookup tables
-    piece_lookup[to] = moving_piece;
-    color_lookup[to] = moving_color; // This would be the same regardless of promotion
+    if (flag == CASTLE) handle_castle(to);
 
-    if (flag == CASTLE) {
-        switch (to) {
-            case c1: // White long castle
-                // Move rook from a1 to d1
-                uint64_t a1_mask = uint64_t{1} << a1;
-                uint64_t d1_mask = uint64_t{1} << d1;
-
-                pieces[WHITE][ROOK] ^= a1_mask;
-                pieces[WHITE][ROOK] ^= d1_mask;
-                colors[WHITE] ^= a1_mask;
-                colors[WHITE] ^= d1_mask;
-
-                // Update lookup tables
-                piece_lookup[a1] = EMPTY;
-                piece_lookup[d1] = ROOK;
-                color_lookup[a1] = EMPTY;
-                color_lookup[d1] = WHITE;
-                break;
-            case g1: // White short castle
-                // Move rook from h1 to f1
-                uint64_t h1_mask = uint64_t{1} << h1;
-                uint64_t f1_mask = uint64_t{1} << f1;
-
-                pieces[WHITE][ROOK] ^= h1_mask;
-                pieces[WHITE][ROOK] ^= f1_mask;
-                colors[WHITE] ^= h1_mask;
-                colors[WHITE] ^= f1_mask;
-
-                // Update lookup tables
-                piece_lookup[h1] = EMPTY;
-                piece_lookup[f1] = ROOK;
-                color_lookup[h1] = EMPTY;
-                color_lookup[f1] = WHITE;
-                break;
-            case c8: // Black long castle
-                // Move rook from a8 to d8
-                uint64_t a8_mask = uint64_t{1} << a8;
-                uint64_t d8_mask = uint64_t{1} << d8;
-                pieces[BLACK][ROOK] ^= a8_mask;
-                pieces[BLACK][ROOK] ^= d8_mask;
-                colors[BLACK] ^= a8_mask;
-                colors[BLACK] ^= d8_mask;
-
-                // Update lookup tables
-                piece_lookup[a8] = EMPTY;
-                piece_lookup[d8] = ROOK;
-                color_lookup[a8] = EMPTY;
-                color_lookup[d8] = BLACK;
-                break;
-            case g8: // Black short castle
-                // Move rook from h8 to f8
-                uint64_t h8_mask = uint64_t{1} << h8;
-                uint64_t f8_mask = uint64_t{1} << f8;
-                pieces[BLACK][ROOK] ^= h8_mask;
-                pieces[BLACK][ROOK] ^= f8_mask;
-                colors[BLACK] ^= h8_mask;
-                colors[BLACK] ^= f8_mask;
-
-                // Update lookup tables
-                piece_lookup[h8] = EMPTY;
-                piece_lookup[f8] = ROOK;
-                color_lookup[h8] = EMPTY;
-                color_lookup[f8] = BLACK;
-                break;
-        }
-    }
+    handle_castling_rights(moving_color, moving_piece);
+}
 
     // TODO
-
-    // Update castling rights if:
-    // King or respective rook moves
-    // Respective rook gets captured
 
     // Set EP target square if pawn moves up 2 squares
     // Clear EP target square otherwise
@@ -304,7 +308,6 @@ void Board::make_move(uint16_t move) {
     // - castling rights
     // - en pas target square
     // - halfmove clock
-}
 
 void unmake_move(uint16_t move) {
 
