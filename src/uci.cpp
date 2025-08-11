@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-static void uci_print(const std::string &str) {
+static void uci_print(const std::string& str) {
     std::cout << str << "\n";
     std::cout.flush();
 }
@@ -12,7 +12,7 @@ static void cmd_uci() {
     uci_print("uci_ok");
 }
 
-static void cmd_setoption(const std::string &str) {
+static void cmd_setoption(const std::string& str) {
     // TODO
 }
 
@@ -24,7 +24,7 @@ static void cmd_ucinewgame() {
     // TODO (clear game state)
 }
 
-static void cmd_position(const std::string &str) {
+static void cmd_position(const std::string& str) {
     
 }
 

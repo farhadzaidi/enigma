@@ -1,6 +1,15 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+#define NUM_SQUARES 64
+#define NUM_COLORS 2
+#define NUM_PIECES 6
+#define BOARD_SIZE 8
+#define NO_EN_PASSANT_TARGET -1
+#define NO_CASTLING_RIGHTS 0
+
+#define START_POS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
+
 // Little Endian Rank-File Mapping
 // a1 --> bit 0
 // h8 --> bit 63
@@ -17,7 +26,8 @@ enum Square {
 
 enum Color {
     WHITE,
-    BLACK
+    BLACK,
+    EMPTY
 };
 
 enum Piece {
@@ -27,14 +37,30 @@ enum Piece {
     ROOK,
     QUEEN,
     KING,
+    EMPTY
 };
 
 // Castling rights are represented by a 4 bit number (useful for hashing)
 enum CASTLING_RIGHTS {
-    WHITE_KING_SIDE     = 0b1,
-    WHITE_QUEEN_SIDE    = 0b10,
-    BLACK_KING_SIDE     = 0b100,
-    BLACK_QUEEN_SIDE    = 0b1000
+    WHITE_SHORT = 0b1,
+    WHITE_LONG  = 0b10,
+    BLACK_SHORT = 0b100,
+    BLACK_LONG  = 0b1000
+};
+
+enum MoveType {
+    QUIET,
+    CAPTURE
+};
+
+enum MoveFlag {
+    NORMAL,
+    EN_PASSANT,
+    CASTLE,
+    PROMOTION_BISHOP,
+    PROMOTION_KNIGHT,
+    PROMOTION_ROOK,
+    PROMOTION_QUEEN
 };
 
 #endif

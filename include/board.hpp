@@ -3,18 +3,24 @@
 
 #include <cstdint>
 #include <string>
-
-#define START_POS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
+#include <array>
 
 class Board {
 public:
+
+    // --- Board Representation ---
+
     // Bitboards representing each piece type by color
     // (e.g. pieces[WHITE][PAWN])
-    uint64_t pieces[2][6];
-
+    std::array<std::array<uint64_t, NUM_PIECES>, NUM_COLORS> pieces;
     // Bitboards representing ALL pieces of each color
     // (e.g. colors[WHITE])
-    uint64_t colors[2];
+    // uint64_t colors[NUM_COLORS];
+    std::array<uint64_t, NUM_COLORS> colors;
+    // Array used to lookup piece at a given square
+    std::array<int, NUM_SQUARES> piece_lookup;
+    // Array used to lookup color of piece at a given square
+    std::array<int, NUM_SQUARES> color_lookup;
 
     int to_move;
     uint8_t castling_rights;
@@ -24,12 +30,12 @@ public:
 
     Board();
 
-    static uint64_t get_square_index(int rank, int file);
-    static uint64_t algebraic_to_index(const std::string &square);
-
     uint64_t get_occupied_squares();
     uint64_t get_empty_squares();
-    void load_from_fen(const std::string &fen = START_POS_FEN);
+    void load_from_fen(const std::string& fen = START_POS_FEN);
+    void make_move(uint16_t move);
+    void unmake_move(uint16_t move);
+    void print_board();
 };
 
 #endif
