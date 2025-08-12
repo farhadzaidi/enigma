@@ -9,8 +9,8 @@
 const uint64_t NOT_A_FILE = 0xfefefefefefefefe;
 const uint64_t NOT_H_FILE = 0x7f7f7f7f7f7f7f7f;
 
-uint64_t get_square_index(int rank, int file);
-uint64_t algebraic_to_index(const std::string& square);
+int get_square_index(int rank, int file);
+int algebraic_to_index(const std::string& square);
 std::string index_to_algebraic(int index);
 uint16_t encode_move_from_uci(const std::string& uci_str);
 std::string decode_move_to_uci(uint16_t move);

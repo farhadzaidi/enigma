@@ -7,6 +7,7 @@
 #define BOARD_SIZE 8
 #define NO_EN_PASSANT_TARGET -1
 #define NO_CASTLING_RIGHTS 0
+#define NO_CAPTURED_PIECE -1
 
 #define START_POS_FEN "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1"
 
@@ -18,6 +19,15 @@
 #define SIXTH_RANK      5    
 #define SEVENTH_RANK    6
 #define EIGHTH_RANK     7
+
+#define A_FILE 0
+#define B_FILE 1
+#define C_FILE 2
+#define D_FILE 3
+#define E_FILE 4
+#define F_FILE 5
+#define G_FILE 6
+#define H_FILE 7
 
 // Little Endian Rank-File Mapping
 // a1 --> bit 0

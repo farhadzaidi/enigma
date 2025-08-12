@@ -4,10 +4,12 @@
 #include <cstdint>
 #include <string>
 #include <array>
+#include <stack>
+
+#include "state.hpp"
 
 class Board {
 public:
-
     // --- Board Representation ---
 
     // Bitboards representing each piece type by color
@@ -23,10 +25,13 @@ public:
     std::array<int, NUM_SQUARES> color_lookup;
 
     int to_move;
-    uint8_t castling_rights;
-    uint64_t en_passant_target;
+    int castling_rights;
+    int en_passant_target;
     int halfmoves;
     int fullmoves;
+
+    std::stack<uint16_t> moves;
+    std::stack<State> state_stack;
 
     Board();
 
@@ -36,7 +41,7 @@ public:
     void remove_piece(int color, int piece, int square);
     void place_piece(int color, int piece, int square);
     void set_en_passant_target(int color, int piece, int from, int to);
-    void handle_capture(int capture_square, int moving_color, int flag);
+    int handle_capture(int capture_square, int moving_color, int flag);
     void handle_castle(int castle_square);
     void handle_castling_rights(int color, int piece);
     void make_move(uint16_t move);

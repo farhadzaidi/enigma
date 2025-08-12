@@ -9,7 +9,7 @@
 // Bits 13 indicates whether the move type (quiet or capture)
 // Bits 14-16 indicate the move flag (special move)
 
-inline uint16_t new_move(uint16_t from, uint16_t to, uint16_t mtype, uint16_t flag) {
+inline uint16_t encode_move(uint16_t from, uint16_t to, uint16_t mtype, uint16_t flag) {
     to <<= 6;
 	mtype <<= 12;
 	flag <<= 13;
