@@ -258,6 +258,9 @@ void Board::handle_castling_rights(int color, int piece) {
 }
 
 void Board::make_move(uint16_t move) {
+    // Preserve board state before making the move
+    State state(en_passant_target, castling_rights, halfmoves, NO_CAPTURED_PIECE);
+
     int from    = get_from(move);
     int to      = get_to(move);
     int mtype   = get_mtype(move);
@@ -275,9 +278,8 @@ void Board::make_move(uint16_t move) {
     remove_piece(moving_color, moving_piece, from);
 
     // Handle capture logic including en passant
-    int captured_piece = NO_CAPTURED_PIECE;
     if (mtype == CAPTURE) {
-        captured_piece = handle_capture(to, moving_color, flag);
+        state.captured_piece = handle_capture(to, moving_color, flag);
     }
 
     // Check if the move is a promotion; if so, update the moving piece
@@ -309,13 +311,8 @@ void Board::make_move(uint16_t move) {
     // Add the move to the list (stack) of moves in this game
     moves.push(move);
 
-    // Push state info onto stack
-    state_stack.push(State(
-        en_passant_target,
-        castling_rights,
-        halfmoves,
-        captured_piece
-    ));
+    // Push state info onto the stack
+    state_stack.push(state);
 }
 
 void unmake_move(uint16_t move) {
@@ -350,7 +347,8 @@ void Board::print_board() {
                         occupied = true;
 
                         // Sanity check
-                        assert(pieces[c][p] == piece_lookup[square]);
+                        assert(piece_lookup[square] == p);
+                        assert(color_lookup[square] == c);
                     }
                 }
             }
@@ -361,6 +359,7 @@ void Board::print_board() {
 
                 // Sanity check
                 assert(piece_lookup[square] == EMPTY);
+                assert(color_lookup[square] == NO_COLOR);
             }
         }
         // Move onto the next rank
