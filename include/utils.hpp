@@ -1,34 +1,31 @@
-#ifndef UTILS_HPP
-#define UTILS_HPP
+#pragma once
 
 #include <string>
 #include <cstdint>
 
 #include "constants.hpp"
+#include "board.hpp"
 
-const uint64_t NOT_A_FILE = 0xfefefefefefefefe;
-const uint64_t NOT_H_FILE = 0x7f7f7f7f7f7f7f7f;
+inline constexpr Mask NOT_A_FILE = uint64_t{0xfefefefefefefefe};
+inline constexpr Mask NOT_H_FILE = uint64_t{0x7f7f7f7f7f7f7f7f};
 
-int get_square_index(int rank, int file);
-int algebraic_to_index(const std::string& square);
-std::string index_to_algebraic(int index);
-uint16_t encode_move_from_uci(const std::string& uci_str);
-std::string decode_move_to_uci(uint16_t move);
+Square get_square(int rank, int file);
+Square algebraic_to_index(const std::string& square);
+std::string index_to_algebraic(Square square);
+Move encode_move_from_uci(const std::string& uci_str);
+std::string decode_move_to_uci(Move move);
 
 
 // Shifting bitboards
-inline uint64_t shift_north(uint64_t b) {return b << 8;}
-inline uint64_t shift_south(uint64_t b) {return b >> 8;}
-inline uint64_t shift_east(uint64_t b) {return (b << 1) & NOT_A_FILE;}
-inline uint64_t shift_northeast(uint64_t b) {return (b << 9) & NOT_A_FILE;}
-inline uint64_t shift_southeast(uint64_t b) {return (b >> 7) & NOT_A_FILE;}
-inline uint64_t shift_west(uint64_t b) {return (b >> 1) & NOT_H_FILE;}
-inline uint64_t shift_northwest(uint64_t b) {return (b << 7) & NOT_H_FILE;}
-inline uint64_t shift_southwest(uint64_t b) {return (b >> 9) & NOT_H_FILE;}
+inline Bitboard shift_north(Bitboard b) {return b << 8;}
+inline Bitboard shift_south(Bitboard b) {return b >> 8;}
+inline Bitboard shift_east(Bitboard b) {return (b << 1) & NOT_A_FILE;}
+inline Bitboard shift_northeast(Bitboard b) {return (b << 9) & NOT_A_FILE;}
+inline Bitboard shift_southeast(Bitboard b) {return (b >> 7) & NOT_A_FILE;}
+inline Bitboard shift_west(Bitboard b) {return (b >> 1) & NOT_H_FILE;}
+inline Bitboard shift_northwest(Bitboard b) {return (b << 7) & NOT_H_FILE;}
+inline Bitboard shift_southwest(Bitboard b) {return (b >> 9) & NOT_H_FILE;}
 
-inline uint64_t get_mask(int square) { return uint64_t{1} << square;}
-inline int get_rank(int square) { return square / BOARD_SIZE;}
-int inline get_file(int square) { return square % BOARD_SIZE;}
-
-
-#endif
+inline Mask get_mask(Square square) { return uint64_t{1} << square;}
+inline int get_rank(Square square) { return square / BOARD_SIZE;}
+inline int get_file(Square square) { return square % BOARD_SIZE;}

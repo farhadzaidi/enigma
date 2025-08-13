@@ -1,55 +1,58 @@
-#ifndef BOARD_HPP
-#define BOARD_HPP
+#pragma once
 
 #include <cstdint>
 #include <string>
 #include <array>
 #include <stack>
 
+#include "constants.hpp"
 #include "state.hpp"
+
+// Defining types here to make board representation easier to read
+using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;
+using ColorBitboards    = std::array<Bitboard, NUM_COLORS>;
+using PieceMap          = std::array<Square, NUM_SQUARES>;
+using KingSquares       = std::array<Square, NUM_COLORS>;
 
 class Board {
 public:
     // --- Board Representation ---
+    PieceBitboards pieces;
+    ColorBitboards colors;
+    PieceMap piece_map;
 
-    // Bitboards representing each piece type by color
-    // (e.g. pieces[WHITE][PAWN])
-    std::array<std::array<uint64_t, NUM_PIECES>, NUM_COLORS> pieces;
-    // Bitboards representing ALL pieces of each color
-    // (e.g. colors[WHITE])
-    // uint64_t colors[NUM_COLORS];
-    std::array<uint64_t, NUM_COLORS> colors;
-    // Array used to lookup piece at a given square
-    std::array<int, NUM_SQUARES> piece_lookup;
-    // Array used to lookup color of piece at a given square
-    std::array<int, NUM_SQUARES> color_lookup;
+    // Additional information 
+    KingSquares king_squares;
+    Bitboard occupied;
 
-    int to_move;
-    int castling_rights;
-    int en_passant_target;
+    // Board state information
+    Color to_move;
+    CastlingRights castling_rights;
+    Square en_passant_target;
     int halfmoves;
     int fullmoves;
 
-    std::stack<uint16_t> moves;
+    // Stack of moves - useful for undoing moves
+    std::stack<Move> moves;
+
+    // Stack for tracking irreversible board state
     std::stack<State> state_stack;
 
     Board();
 
-    uint64_t get_occupied_squares();
-    uint64_t get_empty_squares();
     void load_from_fen(const std::string& fen = START_POS_FEN);
-    void remove_piece(int color, int piece, int square);
-    void place_piece(int color, int piece, int square);
-    void set_en_passant_target(int color, int piece, int from, int to);
-    int handle_capture(int capture_square, int moving_color, int flag);
-    void handle_castle(int castle_square);
-    void handle_castling_rights(int color, int piece);
-    void make_move(uint16_t move);
-    void unmake_move(uint16_t move);
-
-
-
     void print_board();
-};
 
-#endif
+    Color get_color(Square square);
+
+    void remove_piece(Color color, Piece piece, Square square);
+    void place_piece(Color color, Piece piece, Square square);
+
+    void set_en_passant_target(Color color, Piece piece, Square from, Square to);
+    int handle_capture(Square capture_square, Color moving_color, MoveComponent flag);
+    void handle_castle(Square castle_square);
+    void update_castling_rights(Color color, Piece piece);
+    void make_move(Move move);
+
+    void unmake_move(Move move);
+};

@@ -9,39 +9,46 @@
 #include "utils.hpp"
 #include "move.hpp"
 
-Board::Board() :
-    pieces{},
-    colors{},
-    castling_rights(NO_CASTLING_RIGHTS),
-    en_passant_target(NO_EN_PASSANT_TARGET) {
-        piece_lookup.fill(EMPTY);
-        color_lookup.fill(NO_COLOR);
-    }
+Board::Board() {
+    pieces[WHITE].fill(EMPTY_BITBOARD);
+    pieces[BLACK].fill(EMPTY_BITBOARD);
+    colors.fill(EMPTY_BITBOARD);
 
-// Returns a bitboard with all bits corresponding to occupied squares set
-uint64_t Board::get_occupied_squares() {
-    return colors[WHITE] | colors[BLACK];
+    piece_map.fill(NO_PIECE);
+    king_squares.fill(NO_SQUARE);
+
+    occupied = EMPTY_BITBOARD;
+    to_move = NO_COLOR;
+    castling_rights = NO_CASTLING_RIGHTS;
+    en_passant_target = NO_SQUARE;
+    halfmoves = 0;
+    fullmoves = 0;
 }
 
-// Returns a bitboard with all bits corresponding to empty squares set
-uint64_t Board::get_empty_squares() {
-    return ~(colors[WHITE] | colors[BLACK]);
-}
-
-void Board::remove_piece(int color, int piece, int square) {
-    uint64_t mask = ~get_mask(square);
+void Board::remove_piece(Color color, Piece piece, Square square) {
+    // Create a mask based on the square of the piece and use bitwise AND to
+    // remove the piece from each respective bitboard
+    Mask mask = ~get_mask(square);
     pieces[color][piece] &= mask;
     colors[color] &= mask;
-    piece_lookup[square] = EMPTY;
-    color_lookup[square] = NO_COLOR;
+    occupied &= mask;
+
+    piece_map[square] = NO_PIECE;
+    // No need to king square here as it will be updated in place_piece
 }
 
-void Board::place_piece(int color, int piece, int square) {
-    uint64_t mask = get_mask(square);
+void Board::place_piece(Color color, Piece piece, Square square) {
+    // create a mask based on the square of the piece and use bitwise OR to
+    // place the piece on each respective bitboard
+    Mask mask = get_mask(square);
     pieces[color][piece] |= mask;
     colors[color] |= mask;
-    piece_lookup[square] = piece;
-    color_lookup[square] = color;
+    occupied |= mask;
+
+    piece_map[square] = piece;
+    if (piece == KING) {
+        king_squares[color] = square;
+    }
 }
 
 void Board::load_from_fen(const std::string& fen) {
@@ -69,13 +76,10 @@ void Board::load_from_fen(const std::string& fen) {
     int rank = 7;
     int file = 0;
     for (char c : position) {
-        // Ensure file stays within the range 0-7
-        // More specifically, reset the file to 0 when it reaches 8
-        file %= 8;
-
         // End of rank; go down one
         if (c == '/') {
             rank -= 1;
+            file = 0;
             continue;
         }
 
@@ -86,9 +90,9 @@ void Board::load_from_fen(const std::string& fen) {
         }
 
         // Must be a piece
-        int square = get_square_index(rank, file);
-        int color = std::isupper(c) ? WHITE : BLACK;
-        int piece;
+        Square square = get_square(rank, file);
+        Color color = std::isupper(c) ? WHITE : BLACK;
+        Piece piece;
 
         switch (std::toupper(c)) {
             case 'P':
@@ -152,7 +156,12 @@ void Board::load_from_fen(const std::string& fen) {
     this->fullmoves = std::stoi(fullmoves);
 }
 
-void Board::set_en_passant_target(int color, int piece, int from, int to) {
+Color Board::get_color(Square square) {
+    return (colors[BLACK] >> square) & uint64_t{1};
+}
+
+
+void Board::set_en_passant_target(Color color, Piece piece, Square from, Square to) {
     // White moves a pawn 2 squares north
     if (
         color == WHITE
@@ -174,11 +183,11 @@ void Board::set_en_passant_target(int color, int piece, int from, int to) {
     }
 
     else {
-        en_passant_target = NO_EN_PASSANT_TARGET;
+        en_passant_target = NO_SQUARE;
     }
 }
 
-int Board::handle_capture(int capture_square, int moving_color, int flag) {
+int Board::handle_capture(Square capture_square, Color moving_color, MoveComponent flag) {
     halfmoves = 0;
 
     if (flag == EN_PASSANT) {
@@ -190,12 +199,12 @@ int Board::handle_capture(int capture_square, int moving_color, int flag) {
             : capture_square + 8; // 1 step north
     }
 
-    int captured_piece = piece_lookup[capture_square];
+    int captured_piece = piece_map[capture_square];
     remove_piece(!moving_color, captured_piece, capture_square);
     return captured_piece;
 }
 
-void Board::handle_castle(int castle_square) {
+void Board::handle_castle(Square castle_square) {
     switch (castle_square) {
         case c1: // White long castle
             remove_piece(WHITE, ROOK, a1);
@@ -216,7 +225,7 @@ void Board::handle_castle(int castle_square) {
     }
 }
 
-void Board::handle_castling_rights(int color, int piece) {
+void Board::update_castling_rights(Color color, Piece piece) {
     // Castling rights checks:
     // If the king moves --> revoke all castling rights for that color
     // If any corner rook is not in its starting position --> revoke castling
@@ -257,17 +266,17 @@ void Board::handle_castling_rights(int color, int piece) {
     }
 }
 
-void Board::make_move(uint16_t move) {
-    // Preserve board state before making the move
-    State state(en_passant_target, castling_rights, halfmoves, NO_CAPTURED_PIECE);
+void Board::make_move(Move move) {
+    // Preserve irreversible board state before making the move
+    State state(en_passant_target, castling_rights, halfmoves, NO_PIECE);
 
     int from    = get_from(move);
     int to      = get_to(move);
     int mtype   = get_mtype(move);
     int flag    = get_flag(move);
 
-    int moving_color = color_lookup[from];
-    int moving_piece = piece_lookup[from];
+    int moving_piece = piece_map[from];
+    int moving_color = to_move;
 
     // Update move clocks
     halfmoves++;
@@ -302,8 +311,10 @@ void Board::make_move(uint16_t move) {
     // place the piece on the "to" square
     place_piece(moving_color, moving_piece, to);
 
-    if (flag == CASTLE) handle_castle(to);
-    handle_castling_rights(moving_color, moving_piece);
+    if (flag == CASTLE) {
+        handle_castle(to);
+    }
+    update_castling_rights(moving_color, moving_piece);
 
     // Toggle side to move
     to_move = !to_move;
@@ -316,9 +327,7 @@ void Board::make_move(uint16_t move) {
 }
 
 void unmake_move(uint16_t move) {
-
-
-
+    // TODO
 }
 
 void Board::print_board() {
@@ -331,36 +340,15 @@ void Board::print_board() {
     // Loop through the board top to bottom, left to right
     for (int rank = BOARD_SIZE - 1; rank >= 0; rank--) {
         for (int file = 0; file < BOARD_SIZE; file++) {
-            // Get the current square and use it to generate a bitmask
-            // for only that square
-            int square = get_square_index(rank, file);
-            uint64_t mask = get_mask(square);
-            
-            // Loop through all pieces and check which piece type (if any)
-            // occupy this square
-            bool occupied = false;
-            for (int c = 0; c < NUM_COLORS; c++) {
-                for (int p = 0; p < NUM_PIECES; p++) {
-                    // Check if this piece occupies the current square
-                    if (pieces[c][p] & mask) {
-                        std::clog << SYMBOLS[c][p] << " ";
-                        occupied = true;
-
-                        // Sanity check
-                        assert(piece_lookup[square] == p);
-                        assert(color_lookup[square] == c);
-                    }
-                }
-            }
-
-            // Print an empty/unoccupied symbol if the square isn't occupied
-            if (!occupied) {
+            Square square = get_square(rank, file);
+            Piece piece = piece_map[square];
+            if (piece == NO_PIECE) {
                 std::clog << EMPTY_SYMBOL << " ";
-
-                // Sanity check
-                assert(piece_lookup[square] == EMPTY);
-                assert(color_lookup[square] == NO_COLOR);
+                continue;
             }
+
+            Color color = get_color(square);
+            std::clog << SYMBOLS[color][piece] << " ";
         }
         // Move onto the next rank
         std::clog << "\n";
