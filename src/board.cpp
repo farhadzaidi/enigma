@@ -336,9 +336,14 @@ void Board::print_board() {
         { "♚", "♛", "♜", "♝", "♞", "♟" },
         { "♔", "♕", "♖", "♗", "♘", "♙" }
     };
+    const char* FILES[BOARD_SIZE] ={
+        "a", "b", "c", "d", "e", "f", "g", "h"
+    };
 
     // Loop through the board top to bottom, left to right
     for (int rank = BOARD_SIZE - 1; rank >= 0; rank--) {
+        std::clog << "\t" << rank << "  "; // Print ranks on the side
+
         for (int file = 0; file < BOARD_SIZE; file++) {
             Square square = get_square(rank, file);
             Piece piece = piece_map[square];
@@ -350,7 +355,15 @@ void Board::print_board() {
             Color color = get_color(square);
             std::clog << SYMBOLS[color][piece] << " ";
         }
+
         // Move onto the next rank
         std::clog << "\n";
     }
+
+    // Print files at the bottom
+    std::clog << "\n\t   ";
+    for (int file = 0; file < BOARD_SIZE; file++) {
+        std::clog << FILES[file] << " ";
+    }
+    std::clog << "\n\n";
 }
