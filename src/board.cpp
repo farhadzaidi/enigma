@@ -141,7 +141,7 @@ void Board::load_from_fen(const std::string& fen) {
 
     // En passant target square
     if (en_passant_target != "-") {
-        this->en_passant_target = algebraic_to_index(en_passant_target);
+        this->en_passant_target = uci_to_index(en_passant_target);
     }
 
     // Halfmoves
@@ -182,10 +182,10 @@ void Board::set_en_passant_target(Color color, Piece piece, Square from, Square 
     }
 }
 
-int Board::handle_capture(Square capture_square, Color moving_color, MoveFlag flag) {
+int Board::handle_capture(Square capture_square, Color moving_color, MoveFlag mflag) {
     halfmoves = 0;
 
-    if (flag == EN_PASSANT) {
+    if (mflag == EN_PASSANT) {
         // In the case of en passant, the captured piece (pawn) is one rank
         // "behind" the "to" square. "Behind" can either be south or north
         // depending on whether the moving piece is white or black, respectively
@@ -265,10 +265,10 @@ void Board::make_move(Move move) {
     // Preserve irreversible board state before making the move
     State state(en_passant_target, castling_rights, halfmoves, NO_PIECE);
 
-    int from    = get_from(move);
-    int to      = get_to(move);
-    int mtype   = get_mtype(move);
-    int flag    = get_flag(move);
+    int from        = get_from(move);
+    int to          = get_to(move);
+    int mtype       = get_mtype(move);
+    int mflag       = get_mflag(move);
 
     int moving_piece = piece_map[from];
     int moving_color = to_move;
@@ -283,11 +283,11 @@ void Board::make_move(Move move) {
 
     // Handle capture logic including en passant
     if (mtype == CAPTURE) {
-        state.captured_piece = handle_capture(to, moving_color, flag);
+        state.captured_piece = handle_capture(to, moving_color, mflag);
     }
 
     // Check if the move is a promotion; if so, update the moving piece
-    switch (flag) {
+    switch (mflag) {
         case PROMOTION_BISHOP:
             moving_piece = BISHOP;
             break;
@@ -306,7 +306,7 @@ void Board::make_move(Move move) {
     // place the piece on the "to" square
     place_piece(moving_color, moving_piece, to);
 
-    if (flag == CASTLE) {
+    if (mflag == CASTLE) {
         handle_castle(to);
     }
     update_castling_rights(moving_color, moving_piece);

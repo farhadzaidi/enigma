@@ -10,9 +10,9 @@ inline constexpr Bitmask NOT_A_FILE = uint64_t{0xfefefefefefefefe};
 inline constexpr Bitmask NOT_H_FILE = uint64_t{0x7f7f7f7f7f7f7f7f};
 
 Square get_square(int rank, int file);
-Square algebraic_to_index(const std::string& square);
-std::string index_to_algebraic(Square square);
-Move encode_move_from_uci(const std::string& uci_str);
+Square uci_to_index(const std::string& square);
+std::string index_to_uci(Square square);
+Move encode_move_from_uci(const std::string& uci_move);
 std::string decode_move_to_uci(Move move);
 
 

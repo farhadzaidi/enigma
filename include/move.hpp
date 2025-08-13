@@ -14,14 +14,14 @@ inline Move encode_move(
     uint16_t from, 
     uint16_t to, 
     MoveType mtype, 
-    MoveFlag flag
+    MoveFlag mflag
 ) {
     to <<= 6;
 	mtype <<= 12;
-	flag <<= 13;
-	return from | to | mtype | flag;
+	mflag <<= 13;
+	return from | to | mtype | mflag;
 }
 inline Square get_from(Move m) {return m & 63;}
 inline Square get_to(Move m) {return (m >> 6) & 63;}
 inline MoveType get_mtype(Move m) {return (m >> 12) & 1;}
-inline MoveFlag get_flag(Move m) {return (m >> 13) & 7;}
+inline MoveFlag get_mflag(Move m) {return (m >> 13) & 7;}
