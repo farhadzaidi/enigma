@@ -2,13 +2,12 @@
 
 #include <cstdint>
 #include <string>
-#include <array>
 #include <stack>
 
-#include "constants.hpp"
+#include "types.hpp"
 #include "state.hpp"
 
-// Defining types here to make board representation easier to read
+// Type definitions for board representation
 using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;
 using ColorBitboards    = std::array<Bitboard, NUM_COLORS>;
 using PieceMap          = std::array<Square, NUM_SQUARES>;
@@ -36,7 +35,7 @@ public:
     std::stack<Move> moves;
 
     // Stack for tracking irreversible board state
-    std::stack<State> state_stack;
+    std::stack<State> states;
 
     Board();
 
@@ -49,7 +48,7 @@ public:
     void place_piece(Color color, Piece piece, Square square);
 
     void set_en_passant_target(Color color, Piece piece, Square from, Square to);
-    int handle_capture(Square capture_square, Color moving_color, MoveComponent flag);
+    int handle_capture(Square capture_square, Color moving_color, MoveFlag flag);
     void handle_castle(Square castle_square);
     void update_castling_rights(Color color, Piece piece);
     void make_move(Move move);

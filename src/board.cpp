@@ -4,7 +4,7 @@
 #include <iostream>
 #include <cassert>
 
-#include "constants.hpp"
+#include "types.hpp"
 #include "board.hpp"
 #include "utils.hpp"
 #include "move.hpp"
@@ -28,7 +28,7 @@ Board::Board() {
 void Board::remove_piece(Color color, Piece piece, Square square) {
     // Create a mask based on the square of the piece and use bitwise AND to
     // remove the piece from each respective bitboard
-    Mask mask = ~get_mask(square);
+    Bitmask mask = ~get_mask(square);
     pieces[color][piece] &= mask;
     colors[color] &= mask;
     occupied &= mask;
@@ -40,7 +40,7 @@ void Board::remove_piece(Color color, Piece piece, Square square) {
 void Board::place_piece(Color color, Piece piece, Square square) {
     // create a mask based on the square of the piece and use bitwise OR to
     // place the piece on each respective bitboard
-    Mask mask = get_mask(square);
+    Bitmask mask = get_mask(square);
     pieces[color][piece] |= mask;
     colors[color] |= mask;
     occupied |= mask;
@@ -72,7 +72,6 @@ void Board::load_from_fen(const std::string& fen) {
     std::string fullmoves           = parts[5];
 
     // Set up position starting from top left
-    std::clog << "1. Setting up position\n";
     int rank = 7;
     int file = 0;
     for (char c : position) {
@@ -120,7 +119,6 @@ void Board::load_from_fen(const std::string& fen) {
     }
 
     // Side to move
-    std::clog << "2. Setting side to move\n";
     this->to_move = to_move == "w" ? WHITE : BLACK;
 
     // Castling rights
@@ -142,17 +140,14 @@ void Board::load_from_fen(const std::string& fen) {
     }
 
     // En passant target square
-    std::clog << "3. Setting en passant target square\n";
     if (en_passant_target != "-") {
         this->en_passant_target = algebraic_to_index(en_passant_target);
     }
 
     // Halfmoves
-    std::clog << "4. Setting halfmoves\n";
     this->halfmoves = std::stoi(halfmoves);
 
     // Fullmoves
-    std::clog << "5. Setting fullmoves\n\n";
     this->fullmoves = std::stoi(fullmoves);
 }
 
@@ -187,7 +182,7 @@ void Board::set_en_passant_target(Color color, Piece piece, Square from, Square 
     }
 }
 
-int Board::handle_capture(Square capture_square, Color moving_color, MoveComponent flag) {
+int Board::handle_capture(Square capture_square, Color moving_color, MoveFlag flag) {
     halfmoves = 0;
 
     if (flag == EN_PASSANT) {
@@ -206,21 +201,21 @@ int Board::handle_capture(Square capture_square, Color moving_color, MoveCompone
 
 void Board::handle_castle(Square castle_square) {
     switch (castle_square) {
-        case c1: // White long castle
-            remove_piece(WHITE, ROOK, a1);
-            place_piece(WHITE, ROOK, d1);
+        case C1: // White long castle
+            remove_piece(WHITE, ROOK, A1);
+            place_piece(WHITE, ROOK, D1);
             break;
-        case g1: // White short castle
-            remove_piece(WHITE, ROOK, h1);
-            place_piece(WHITE, ROOK, f1);
+        case G1: // White short castle
+            remove_piece(WHITE, ROOK, H1);
+            place_piece(WHITE, ROOK, F1);
             break;
-        case c8: // Black long castle
-            remove_piece(BLACK, ROOK, a8);
-            place_piece(BLACK, ROOK, d8);
+        case C8: // Black long castle
+            remove_piece(BLACK, ROOK, A8);
+            place_piece(BLACK, ROOK, D8);
             break;
-        case g8: // Black short castle
-            remove_piece(BLACK, ROOK, h8);
-            place_piece(BLACK, ROOK, f8);
+        case G8: // Black short castle
+            remove_piece(BLACK, ROOK, H8);
+            place_piece(BLACK, ROOK, F8);
             break;
     }
 }
@@ -242,25 +237,25 @@ void Board::update_castling_rights(Color color, Piece piece) {
     }
 
     // King-side rook
-    bool white_king_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(h1)) == 0;
+    bool white_king_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(H1)) == 0;
     if (white_king_side_rook_moved) {
         castling_rights &= ~WHITE_SHORT;
     }
 
     // Queen-side rook
-    bool white_queen_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(a1)) == 0;
+    bool white_queen_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(A1)) == 0;
     if (white_queen_side_rook_moved) {
         castling_rights &= ~WHITE_LONG;
     }
 
     // King-side rook
-    bool black_king_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(h8)) == 0;
+    bool black_king_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(H8)) == 0;
     if (black_king_side_rook_moved) {
         castling_rights &= ~BLACK_SHORT;
     }
 
     // Queen-side rook
-    bool black_queen_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(a8)) == 0;
+    bool black_queen_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(A8)) == 0;
     if (black_queen_side_rook_moved) {
         castling_rights &= ~BLACK_LONG;
     }
@@ -322,23 +317,25 @@ void Board::make_move(Move move) {
     // Add the move to the list (stack) of moves in this game
     moves.push(move);
 
-    // Push state info onto the stack
-    state_stack.push(state);
+    // Push state info onto the state stack
+    states.push(state);
 }
 
-void unmake_move(uint16_t move) {
+void unmake_move(Move move) {
     // TODO
 }
 
 void Board::print_board() {
-    const char* EMPTY_SYMBOL = ".";
-    const char* SYMBOLS[NUM_COLORS][NUM_PIECES] = {
+    std::string EMPTY_SYMBOL = ".";
+    std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{ // yuck...
         { "♚", "♛", "♜", "♝", "♞", "♟" },
         { "♔", "♕", "♖", "♗", "♘", "♙" }
-    };
-    const char* FILES[BOARD_SIZE] ={
+    }};
+    std::array<std::string, BOARD_SIZE> FILES = {
         "a", "b", "c", "d", "e", "f", "g", "h"
     };
+
+    std::clog << "\n";
 
     // Loop through the board top to bottom, left to right
     for (int rank = BOARD_SIZE - 1; rank >= 0; rank--) {

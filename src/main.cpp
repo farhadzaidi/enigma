@@ -1,4 +1,4 @@
-#include "constants.hpp"
+#include "types.hpp"
 #include "board.hpp"
 
 int main() {

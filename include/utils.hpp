@@ -3,11 +3,11 @@
 #include <string>
 #include <cstdint>
 
-#include "constants.hpp"
+#include "types.hpp"
 #include "board.hpp"
 
-inline constexpr Mask NOT_A_FILE = uint64_t{0xfefefefefefefefe};
-inline constexpr Mask NOT_H_FILE = uint64_t{0x7f7f7f7f7f7f7f7f};
+inline constexpr Bitmask NOT_A_FILE = uint64_t{0xfefefefefefefefe};
+inline constexpr Bitmask NOT_H_FILE = uint64_t{0x7f7f7f7f7f7f7f7f};
 
 Square get_square(int rank, int file);
 Square algebraic_to_index(const std::string& square);
@@ -26,6 +26,6 @@ inline Bitboard shift_west(Bitboard b) {return (b >> 1) & NOT_H_FILE;}
 inline Bitboard shift_northwest(Bitboard b) {return (b << 7) & NOT_H_FILE;}
 inline Bitboard shift_southwest(Bitboard b) {return (b >> 9) & NOT_H_FILE;}
 
-inline Mask get_mask(Square square) { return uint64_t{1} << square;}
+inline Bitmask get_mask(Square square) { return uint64_t{1} << square;}
 inline int get_rank(Square square) { return square / BOARD_SIZE;}
 inline int get_file(Square square) { return square % BOARD_SIZE;}

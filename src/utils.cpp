@@ -1,4 +1,4 @@
-#include "constants.hpp"
+#include "types.hpp"
 #include "utils.hpp"
 
 // Calculates the index of a square given the 0-indexed rank and file
