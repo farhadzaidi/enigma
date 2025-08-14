@@ -39,13 +39,14 @@ public:
 
     Board();
 
-    void load_from_fen(const std::string& fen = START_POS_FEN);
-    void print_board();
-
-    Color get_color(Square square);
-
     void remove_piece(Color color, Piece piece, Square square);
     void place_piece(Color color, Piece piece, Square square);
+
+    void load_from_fen(const std::string& fen = START_POS_FEN);
+    void print_board();
+    void debug();
+
+    Color get_color(Square square);
 
     void set_en_passant_target(Color color, Piece piece, Square from, Square to);
     int handle_capture(Square capture_square, Color moving_color, MoveFlag mflag);

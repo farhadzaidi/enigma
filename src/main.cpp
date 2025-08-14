@@ -4,6 +4,6 @@
 int main() {
     Board b;
     b.load_from_fen();
-    b.print_board();
+    b.debug();
     return 0;
 }

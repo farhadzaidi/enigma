@@ -12,9 +12,8 @@ inline constexpr Bitmask NOT_H_FILE = uint64_t{0x7f7f7f7f7f7f7f7f};
 Square get_square(int rank, int file);
 Square uci_to_index(const std::string& square);
 std::string index_to_uci(Square square);
-Move encode_move_from_uci(const std::string& uci_move);
+Move encode_move_from_uci(const Board& b, const std::string& uci_move);
 std::string decode_move_to_uci(Move move);
-
 
 // Shifting bitboards
 inline Bitboard shift_north(Bitboard b) {return b << 8;}

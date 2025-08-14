@@ -25,3 +25,4 @@ inline Square get_from(Move m) {return m & 63;}
 inline Square get_to(Move m) {return (m >> 6) & 63;}
 inline MoveType get_mtype(Move m) {return (m >> 12) & 1;}
 inline MoveFlag get_mflag(Move m) {return (m >> 13) & 7;}
+inline bool is_promotion(MoveFlag mf) {return mf >= 3;}

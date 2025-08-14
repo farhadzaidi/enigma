@@ -151,6 +151,64 @@ void Board::load_from_fen(const std::string& fen) {
     this->fullmoves = std::stoi(fullmoves);
 }
 
+
+void Board::print_board() {
+    std::string EMPTY_SYMBOL = ".";
+    std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{ // yuck...
+        { "♟", "♝", "♞", "♜", "♛", "♚" },
+        { "♙", "♗", "♘", "♖", "♕", "♔" }
+    }};
+    std::array<std::string, BOARD_SIZE> FILES = {
+        "a", "b", "c", "d", "e", "f", "g", "h"
+    };
+
+    std::clog << "\n";
+
+    // Loop through the board top to bottom, left to right
+    for (int rank = BOARD_SIZE - 1; rank >= 0; rank--) {
+        std::clog << "\t" << rank + 1 << "  "; // Print ranks on the side
+
+        for (int file = 0; file < BOARD_SIZE; file++) {
+            Square square = get_square(rank, file);
+            Piece piece = piece_map[square];
+            if (piece == NO_PIECE) {
+                std::clog << EMPTY_SYMBOL << " ";
+                continue;
+            }
+
+            Color color = get_color(square);
+            std::clog << SYMBOLS[color][piece] << " ";
+        }
+
+        // Move onto the next rank
+        std::clog << "\n";
+    }
+
+    // Print files at the bottom
+    std::clog << "\n\t   ";
+    for (int file = 0; file < BOARD_SIZE; file++) {
+        std::clog << FILES[file] << " ";
+    }
+    std::clog << "\n\n";
+}
+
+void Board::debug() {
+    std::string input = "";
+    while (true) {
+        print_board();
+
+        std::cin >> input;
+        if (input == "quit") {
+            break;
+        } else if (input == "undo") {
+            unmake_move(moves.top());
+        } else {
+            Move move = encode_move_from_uci(*this, input);
+            make_move(move);
+        }
+    }
+}
+
 Color Board::get_color(Square square) {
     return (colors[BLACK] >> square) & uint64_t{1};
 }
@@ -265,10 +323,10 @@ void Board::make_move(Move move) {
     // Preserve irreversible board state before making the move
     State state(en_passant_target, castling_rights, halfmoves, NO_PIECE);
 
-    int from        = get_from(move);
-    int to          = get_to(move);
-    int mtype       = get_mtype(move);
-    int mflag       = get_mflag(move);
+    Square from     = get_from(move);
+    Square to       = get_to(move);
+    MoveType mtype  = get_mtype(move);
+    MoveFlag mflag  = get_mflag(move);
 
     int moving_piece = piece_map[from];
     int moving_color = to_move;
@@ -321,46 +379,82 @@ void Board::make_move(Move move) {
     states.push(state);
 }
 
-void unmake_move(Move move) {
-    // TODO
-}
+void Board::unmake_move(Move move) {
+    Square from     = get_from(move);
+    Square to       = get_to(move);
+    MoveType mtype  = get_mtype(move);
+    MoveFlag mflag  = get_mflag(move);
 
-void Board::print_board() {
-    std::string EMPTY_SYMBOL = ".";
-    std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{ // yuck...
-        { "♚", "♛", "♜", "♝", "♞", "♟" },
-        { "♔", "♕", "♖", "♗", "♘", "♙" }
-    }};
-    std::array<std::string, BOARD_SIZE> FILES = {
-        "a", "b", "c", "d", "e", "f", "g", "h"
-    };
+    // The color that moved on this move is the opposite of the color that is
+    // currently set to move
+    Color moving_color = !to_move;
 
-    std::clog << "\n";
+    // Restore state
+    const State& prev_state = states.top();
+    en_passant_target = prev_state.en_passant_target;
+    castling_rights = prev_state.castling_rights;
+    halfmoves = prev_state.halfmoves;
 
-    // Loop through the board top to bottom, left to right
-    for (int rank = BOARD_SIZE - 1; rank >= 0; rank--) {
-        std::clog << "\t" << rank << "  "; // Print ranks on the side
+    // Fullmoves is only incremented if black moves, so we decrement it if we
+    // are undoing a black move
+    if (moving_color == BLACK) {
+        fullmoves--;
+    }
 
-        for (int file = 0; file < BOARD_SIZE; file++) {
-            Square square = get_square(rank, file);
-            Piece piece = piece_map[square];
-            if (piece == NO_PIECE) {
-                std::clog << EMPTY_SYMBOL << " ";
-                continue;
-            }
+    // Remove the piece from "to"
+    Piece moving_piece = piece_map[to];
+    remove_piece(moving_color, moving_piece, to);
 
-            Color color = get_color(square);
-            std::clog << SYMBOLS[color][piece] << " ";
+    // In the case of a promotion, we change the moving piece to pawn so we place
+    // the correct piece back on "from"
+    if (is_promotion(mflag)) {
+        moving_piece = PAWN;
+    }
+
+    // Put the moving piece back on "from"
+    place_piece(moving_color, moving_piece, from);
+
+    // Restore the captured piece
+    if (mtype == CAPTURE) {
+        Square capture_square = to;
+
+        if (mflag == EN_PASSANT) {
+            // Same logic as before
+            capture_square = moving_color == WHITE
+                ? capture_square - 8 
+                : capture_square + 8;
         }
 
-        // Move onto the next rank
-        std::clog << "\n";
+        place_piece(!moving_color, prev_state.captured_piece, capture_square);
     }
 
-    // Print files at the bottom
-    std::clog << "\n\t   ";
-    for (int file = 0; file < BOARD_SIZE; file++) {
-        std::clog << FILES[file] << " ";
+    if (mflag == CASTLE) {
+        // Determine the correct corner rook based on where the king moved and
+        // move it back to its respective corner
+        switch (to) {
+            case C1: // White long
+                remove_piece(moving_color, ROOK, D1);
+                place_piece(moving_color, ROOK, A1);
+                break;
+            case G1: // White short
+                remove_piece(moving_color, ROOK, F1);
+                place_piece(moving_color, ROOK, H1);
+                break;
+            case C8: // Black long
+                remove_piece(moving_color, ROOK, D8);
+                place_piece(moving_color, ROOK, A8);
+                break;
+            case G8: // Black short
+                remove_piece(moving_color, ROOK, F8);
+                place_piece(moving_color, ROOK, H8);
+                break;
+        }
     }
-    std::clog << "\n\n";
+
+    // Toggle side to move
+    to_move = !to_move;
+
+    // Pop from stacks
+    states.pop();
+    moves.pop();
 }

@@ -6,6 +6,8 @@
 #include "move.hpp"
 #include "board.hpp"
 
+#include <iostream>
+
 // Calculates the index of a square given the 0-indexed rank and file
 // (i.e. 0 <= rank, file <= 7)
 Square get_square(int rank, int file) {
