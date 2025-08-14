@@ -1,8 +1,10 @@
 #include <cctype>
-#include <vector>
 #include <sstream>
 #include <iostream>
-#include <cassert>
+#include <string>
+#include <array>
+#include <stack>
+#include <vector>
 
 #include "types.hpp"
 #include "board.hpp"
@@ -49,6 +51,10 @@ void Board::place_piece(Color color, Piece piece, Square square) {
     if (piece == KING) {
         king_squares[color] = square;
     }
+}
+
+Color Board::get_color(Square square) {
+    return (colors[BLACK] >> square) & uint64_t{1};
 }
 
 void Board::load_from_fen(const std::string& fen) {
@@ -209,11 +215,6 @@ void Board::debug() {
     }
 }
 
-Color Board::get_color(Square square) {
-    return (colors[BLACK] >> square) & uint64_t{1};
-}
-
-
 void Board::set_en_passant_target(Color color, Piece piece, Square from, Square to) {
     // White moves a pawn 2 squares north
     if (
@@ -240,7 +241,7 @@ void Board::set_en_passant_target(Color color, Piece piece, Square from, Square 
     }
 }
 
-int Board::handle_capture(Square capture_square, Color moving_color, MoveFlag mflag) {
+Piece Board::handle_capture(Square capture_square, Color moving_color, MoveFlag mflag) {
     halfmoves = 0;
 
     if (mflag == EN_PASSANT) {
@@ -252,7 +253,7 @@ int Board::handle_capture(Square capture_square, Color moving_color, MoveFlag mf
             : capture_square + 8; // 1 step north
     }
 
-    int captured_piece = piece_map[capture_square];
+    Piece captured_piece = piece_map[capture_square];
     remove_piece(!moving_color, captured_piece, capture_square);
     return captured_piece;
 }
