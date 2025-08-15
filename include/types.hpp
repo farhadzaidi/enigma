@@ -118,6 +118,17 @@ inline constexpr Square NO_SQUARE                   = -1;
 inline constexpr CastlingRights NO_CASTLING_RIGHTS  =  0;
 inline constexpr Bitboard EMPTY_BITBOARD            =  0;
 
+
+// Deltas
+inline constexpr int NORTH_DELTA     =  8;
+inline constexpr int SOUTH_DELTA     = -8;
+inline constexpr int EAST_DELTA      =  1;
+inline constexpr int WEST_DELTA      = -1;
+inline constexpr int NORTHEAST_DELTA =  9;
+inline constexpr int NORTHWEST_DELTA =  7;
+inline constexpr int SOUTHEAST_DELTA = -7;
+inline constexpr int SOUTHWEST_DELTA = -9;
+
 // --- FEN Strings ---
 
 inline constexpr const char* START_POS_FEN = 

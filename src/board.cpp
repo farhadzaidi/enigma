@@ -254,7 +254,7 @@ Piece Board::handle_capture(Square capture_square, Color moving_color, MoveFlag 
     }
 
     Piece captured_piece = piece_map[capture_square];
-    remove_piece(!moving_color, captured_piece, capture_square);
+    remove_piece(moving_color ^ 1, captured_piece, capture_square);
     return captured_piece;
 }
 
@@ -371,7 +371,7 @@ void Board::make_move(Move move) {
     update_castling_rights(moving_color, moving_piece);
 
     // Toggle side to move
-    to_move = !to_move;
+    to_move ^= 1;
 
     // Add the move to the list (stack) of moves in this game
     moves.push(move);
@@ -388,7 +388,7 @@ void Board::unmake_move(Move move) {
 
     // The color that moved on this move is the opposite of the color that is
     // currently set to move
-    Color moving_color = !to_move;
+    Color moving_color = to_move ^ 1;
 
     // Restore state
     const State& prev_state = states.top();
@@ -426,7 +426,7 @@ void Board::unmake_move(Move move) {
                 : capture_square + 8;
         }
 
-        place_piece(!moving_color, prev_state.captured_piece, capture_square);
+        place_piece(moving_color ^ 1, prev_state.captured_piece, capture_square);
     }
 
     if (mflag == CASTLE) {
@@ -453,7 +453,7 @@ void Board::unmake_move(Move move) {
     }
 
     // Toggle side to move
-    to_move = !to_move;
+    to_move ^= 1;
 
     // Pop from stacks
     states.pop();
