@@ -6,8 +6,8 @@
 #include <stack>
 #include <vector>
 
-#include "types.hpp"
 #include "board.hpp"
+#include "types.hpp"
 #include "utils.hpp"
 #include "move.hpp"
 
@@ -220,8 +220,8 @@ void Board::set_en_passant_target(Color color, Piece piece, Square from, Square 
     if (
         color == WHITE
         && piece == PAWN
-        && get_rank(from) == SECOND_RANK
-        && get_rank(to) == FOURTH_RANK
+        && get_rank(from) == RANK_2
+        && get_rank(to) == RANK_4
     ) {
         en_passant_target = to - 8; // Directly behind the white pawn (south)
     } 
@@ -230,8 +230,8 @@ void Board::set_en_passant_target(Color color, Piece piece, Square from, Square 
     else if (
         color == BLACK
         && piece == PAWN
-        && get_rank(from) == SEVENTH_RANK
-        && get_rank(to) == FIFTH_RANK
+        && get_rank(from) == RANK_7
+        && get_rank(to) == RANK_8
     ) {
         en_passant_target = to + 8; // Directly behind the black pawn (north)
     }

@@ -1,8 +1,8 @@
 #include <cstdlib>
 #include <string>
 
-#include "types.hpp"
 #include "utils.hpp"
+#include "types.hpp"
 #include "move.hpp"
 #include "board.hpp"
 

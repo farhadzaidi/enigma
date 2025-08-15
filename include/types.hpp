@@ -74,14 +74,14 @@ inline constexpr int NUM_COLORS     = 2;
 inline constexpr int NUM_PIECES     = 6;
 inline constexpr int BOARD_SIZE     = 8;
 
-inline constexpr int FIRST_RANK     = 0;
-inline constexpr int SECOND_RANK    = 1;
-inline constexpr int THIRD_RANK     = 2;
-inline constexpr int FOURTH_RANK    = 3;
-inline constexpr int FIFTH_RANK     = 4;
-inline constexpr int SIXTH_RANK     = 5;
-inline constexpr int SEVENTH_RANK   = 6;
-inline constexpr int EIGHTH_RANK    = 7;
+inline constexpr int RANK_1 = 0;
+inline constexpr int RANK_2 = 1;
+inline constexpr int RANK_3 = 2;
+inline constexpr int RANK_4 = 3;
+inline constexpr int RANK_5 = 4;
+inline constexpr int RANK_6 = 5;
+inline constexpr int RANK_7 = 6;
+inline constexpr int RANK_8 = 7;
 
 inline constexpr int A_FILE = 0;
 inline constexpr int B_FILE = 1;
@@ -91,6 +91,26 @@ inline constexpr int E_FILE = 4;
 inline constexpr int F_FILE = 5;
 inline constexpr int G_FILE = 6;
 inline constexpr int H_FILE = 7;
+
+// Bitmasks
+
+inline constexpr Bitmask RANK_1_MASK = 0x00000000000000FF;
+inline constexpr Bitmask RANK_2_MASK = 0x000000000000FF00;
+inline constexpr Bitmask RANK_3_MASK = 0x0000000000FF0000;
+inline constexpr Bitmask RANK_4_MASK = 0x00000000FF000000;
+inline constexpr Bitmask RANK_5_MASK = 0x000000FF00000000;
+inline constexpr Bitmask RANK_6_MASK = 0x0000FF0000000000;
+inline constexpr Bitmask RANK_7_MASK = 0x00FF000000000000;
+inline constexpr Bitmask RANK_8_MASK = 0xFF00000000000000;
+
+inline constexpr Bitmask A_FILE_MASK = 0x0101010101010101;
+inline constexpr Bitmask B_FILE_MASK = 0x0202020202020202;
+inline constexpr Bitmask C_FILE_MASK = 0x0404040404040404;
+inline constexpr Bitmask D_FILE_MASK = 0x0808080808080808;
+inline constexpr Bitmask E_FILE_MASK = 0x1010101010101010;
+inline constexpr Bitmask F_FILE_MASK = 0x2020202020202020;
+inline constexpr Bitmask G_FILE_MASK = 0x4040404040404040;
+inline constexpr Bitmask H_FILE_MASK = 0x8080808080808080;
 
 // --- Sentinel Values ---
 
