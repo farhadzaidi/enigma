@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-
 #include "types.hpp"
 
 // This struct contains important board state information that is otherwise not

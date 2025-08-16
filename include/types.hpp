@@ -14,6 +14,9 @@ using Square            = uint8_t;
 using Color             = uint8_t;
 using Piece             = uint8_t;
 using CastlingRights    = uint8_t;
+using Rank              = uint8_t;
+using File              = uint8_t;
+using Direction         = int;
 
 // --- Enums ---
 
@@ -26,6 +29,43 @@ enum SquareEnum : Square {
     A6, B6, C6, D6, E6, F6, G6, H6,
     A7, B7, C7, D7, E7, F7, G7, H7,
     A8, B8, C8, D8, E8, F8, G8, H8,
+};
+
+enum DirectionEnum : Direction {
+    NORTH = 8,
+    EAST = 1,
+    SOUTH = -NORTH,
+    WEST = -EAST,
+
+    NORTHEAST = NORTH + EAST,
+    NORTHWEST = NORTH + WEST,
+    SOUTHEAST = SOUTH + EAST,
+    SOUTHWEST = SOUTH + WEST,
+
+    NORTH_NORTH = NORTH + NORTH,
+    SOUTH_SOUTH = SOUTH + SOUTH
+};
+
+enum RankEnum : Rank {
+    RANK_1,
+    RANK_2,
+    RANK_3,
+    RANK_4,
+    RANK_5,
+    RANK_6,
+    RANK_7,
+    RANK_8
+};
+
+enum FileEnum : File {
+    A_FILE,
+    B_FILE,
+    C_FILE,
+    D_FILE,
+    E_FILE,
+    F_FILE,
+    G_FILE,
+    H_FILE,
 };
 
 enum ColorEnum: Color {
@@ -73,24 +113,6 @@ constexpr int NUM_COLORS     = 2;
 constexpr int NUM_PIECES     = 6;
 constexpr int BOARD_SIZE     = 8;
 
-constexpr int RANK_1 = 0;
-constexpr int RANK_2 = 1;
-constexpr int RANK_3 = 2;
-constexpr int RANK_4 = 3;
-constexpr int RANK_5 = 4;
-constexpr int RANK_6 = 5;
-constexpr int RANK_7 = 6;
-constexpr int RANK_8 = 7;
-
-constexpr int A_FILE = 0;
-constexpr int B_FILE = 1;
-constexpr int C_FILE = 2;
-constexpr int D_FILE = 3;
-constexpr int E_FILE = 4;
-constexpr int F_FILE = 5;
-constexpr int G_FILE = 6;
-constexpr int H_FILE = 7;
-
 // Bitboards
 
 constexpr Bitboard RANK_1_MASK = 0x00000000000000FF;
@@ -116,17 +138,6 @@ constexpr Bitboard H_FILE_MASK = 0x8080808080808080;
 constexpr Square NO_SQUARE                   = -1;
 constexpr CastlingRights NO_CASTLING_RIGHTS  =  0;
 constexpr Bitboard EMPTY_BITBOARD            =  0;
-
-
-// Deltas
-constexpr int NORTH_DELTA     =  8;
-constexpr int SOUTH_DELTA     = -8;
-constexpr int EAST_DELTA      =  1;
-constexpr int WEST_DELTA      = -1;
-constexpr int NORTHEAST_DELTA =  9;
-constexpr int NORTHWEST_DELTA =  7;
-constexpr int SOUTHEAST_DELTA = -7;
-constexpr int SOUTHWEST_DELTA = -9;
 
 // --- FEN Strings ---
 

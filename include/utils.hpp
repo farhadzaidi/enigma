@@ -1,39 +1,48 @@
 #pragma once
 
 #include <string>
-#include <cstdint>
 #include <bit>
 
 #include "types.hpp"
 #include "board.hpp"
 
-inline constexpr Bitboard NOT_A_FILE = uint64_t{0xfefefefefefefefe};
-inline constexpr Bitboard NOT_H_FILE = uint64_t{0x7f7f7f7f7f7f7f7f};
-
 // Parsing
-Square get_square(int rank, int file);
+
+constexpr Square get_square(int rank, int file) { return rank * BOARD_SIZE + file; }
+constexpr int get_rank(Square square) { return square / BOARD_SIZE;}
+constexpr int get_file(Square square) { return square % BOARD_SIZE;}
+
 Square uci_to_index(const std::string& square);
 std::string index_to_uci(Square square);
 Move encode_move_from_uci(const Board& b, const std::string& uci_move);
 std::string decode_move_to_uci(Move move);
 
-// Shifting bitboards
-constexpr Bitboard shift_north(Bitboard bb) {return bb << 8;}
-constexpr Bitboard shift_south(Bitboard bb) {return bb >> 8;}
-constexpr Bitboard shift_east(Bitboard bb) {return (bb << 1) & NOT_A_FILE;}
-constexpr Bitboard shift_northeast(Bitboard bb) {return (bb << 9) & NOT_A_FILE;}
-constexpr Bitboard shift_southeast(Bitboard bb) {return (bb >> 7) & NOT_A_FILE;}
-constexpr Bitboard shift_west(Bitboard bb) {return (bb >> 1) & NOT_H_FILE;}
-constexpr Bitboard shift_northwest(Bitboard bb) {return (bb << 7) & NOT_H_FILE;}
-constexpr Bitboard shift_southwest(Bitboard bb) {return (bb >> 9) & NOT_H_FILE;}
+// Bitboards
+
+static constexpr Bitboard NOT_A_FILE = 0xfefefefefefefefe;
+static constexpr Bitboard NOT_H_FILE = 0x7f7f7f7f7f7f7f7f;
+
+template <Direction D>
+constexpr Bitboard shift(Bitboard b) {
+    switch(D) {
+        case NORTH:         return b << 8;
+        case SOUTH:         return b >> 8;
+        case NORTH_NORTH:   return b << 16;
+        case SOUTH_SOUTH:   return b >> 16;
+        case EAST:          return (b << 1) & NOT_A_FILE;
+        case WEST:          return (b >> 1) & NOT_H_FILE;
+        case NORTHEAST:     return (b << 9) & NOT_A_FILE;
+        case NORTHWEST:     return (b << 7) & NOT_H_FILE;
+        case SOUTHEAST:     return (b >> 7) & NOT_A_FILE;
+        case SOUTHWEST:     return (b >> 9) & NOT_H_FILE;
+        default:            return 0;
+    }
+}
 
 constexpr Bitboard get_mask(Square square) { return uint64_t{1} << square;}
-constexpr int get_rank(Square square) { return square / BOARD_SIZE;}
-constexpr int get_file(Square square) { return square % BOARD_SIZE;}
 
-// Bit manipulation
-inline Square pop_lsb(Bitboard& bb) {
-    Square sq = std::countr_zero(bb);
-    bb &= bb - 1; // pop
+inline Square pop_lsb(Bitboard& b) {
+    Square sq = std::countr_zero(b);
+    b &= b - 1; // pop
     return sq;
 }

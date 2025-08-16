@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstdint>
-#include <array>
 #include <string>
 #include <stack>
 
@@ -11,7 +9,7 @@
 // Type definitions for board representation
 using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;
 using ColorBitboards    = std::array<Bitboard, NUM_COLORS>;
-using PieceMap          = std::array<Square, NUM_SQUARES>;
+using PieceMap          = std::array<Piece, NUM_SQUARES>;
 using KingSquares       = std::array<Square, NUM_COLORS>;
 
 class Board {
@@ -43,9 +41,9 @@ public:
     void remove_piece(Color color, Piece piece, Square square);
     void place_piece(Color color, Piece piece, Square square);
 
-    Color get_color(Square square);
+    Color get_color(Square square) const;
     void load_from_fen(const std::string& fen = START_POS_FEN);
-    void print_board();
+    void print_board() const;
     void debug();
 
 

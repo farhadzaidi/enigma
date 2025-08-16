@@ -36,11 +36,11 @@ void Board::remove_piece(Color color, Piece piece, Square square) {
     occupied &= mask;
 
     piece_map[square] = NO_PIECE;
-    // No need to king square here as it will be updated in place_piece
+    // No need to clear king square here as it will be updated in place_piece
 }
 
 void Board::place_piece(Color color, Piece piece, Square square) {
-    // create a mask based on the square of the piece and use bitwise OR to
+    // Create a mask based on the square of the piece and use bitwise OR to
     // place the piece on each respective bitboard
     Bitboard mask = get_mask(square);
     pieces[color][piece] |= mask;
@@ -53,7 +53,7 @@ void Board::place_piece(Color color, Piece piece, Square square) {
     }
 }
 
-Color Board::get_color(Square square) {
+Color Board::get_color(Square square) const {
     return (colors[BLACK] >> square) & uint64_t{1};
 }
 
@@ -158,7 +158,7 @@ void Board::load_from_fen(const std::string& fen) {
 }
 
 
-void Board::print_board() {
+void Board::print_board() const {
     std::string EMPTY_SYMBOL = ".";
     std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{ // yuck...
         { "♟", "♝", "♞", "♜", "♛", "♚" },
@@ -249,8 +249,8 @@ Piece Board::handle_capture(Square capture_square, Color moving_color, MoveFlag 
         // "behind" the "to" square. "Behind" can either be south or north
         // depending on whether the moving piece is white or black, respectively
         capture_square = moving_color == WHITE
-            ? capture_square - 8  // 1 step south
-            : capture_square + 8; // 1 step north
+            ? capture_square + SOUTH
+            : capture_square + NORTH;
     }
 
     Piece captured_piece = piece_map[capture_square];
