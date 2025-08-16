@@ -6,7 +6,6 @@
 
 // --- Type Definitions ---
 
-using Bitmask           = uint64_t;
 using Bitboard          = uint64_t;
 using Move              = uint16_t;
 using MoveType          = uint16_t;
@@ -69,77 +68,77 @@ enum MoveFlagEnum : MoveFlag {
 
 // --- Board Constants ---
 
-inline constexpr int NUM_SQUARES    = 64;
-inline constexpr int NUM_COLORS     = 2;
-inline constexpr int NUM_PIECES     = 6;
-inline constexpr int BOARD_SIZE     = 8;
+constexpr int NUM_SQUARES    = 64;
+constexpr int NUM_COLORS     = 2;
+constexpr int NUM_PIECES     = 6;
+constexpr int BOARD_SIZE     = 8;
 
-inline constexpr int RANK_1 = 0;
-inline constexpr int RANK_2 = 1;
-inline constexpr int RANK_3 = 2;
-inline constexpr int RANK_4 = 3;
-inline constexpr int RANK_5 = 4;
-inline constexpr int RANK_6 = 5;
-inline constexpr int RANK_7 = 6;
-inline constexpr int RANK_8 = 7;
+constexpr int RANK_1 = 0;
+constexpr int RANK_2 = 1;
+constexpr int RANK_3 = 2;
+constexpr int RANK_4 = 3;
+constexpr int RANK_5 = 4;
+constexpr int RANK_6 = 5;
+constexpr int RANK_7 = 6;
+constexpr int RANK_8 = 7;
 
-inline constexpr int A_FILE = 0;
-inline constexpr int B_FILE = 1;
-inline constexpr int C_FILE = 2;
-inline constexpr int D_FILE = 3;
-inline constexpr int E_FILE = 4;
-inline constexpr int F_FILE = 5;
-inline constexpr int G_FILE = 6;
-inline constexpr int H_FILE = 7;
+constexpr int A_FILE = 0;
+constexpr int B_FILE = 1;
+constexpr int C_FILE = 2;
+constexpr int D_FILE = 3;
+constexpr int E_FILE = 4;
+constexpr int F_FILE = 5;
+constexpr int G_FILE = 6;
+constexpr int H_FILE = 7;
 
-// Bitmasks
+// Bitboards
 
-inline constexpr Bitmask RANK_1_MASK = 0x00000000000000FF;
-inline constexpr Bitmask RANK_2_MASK = 0x000000000000FF00;
-inline constexpr Bitmask RANK_3_MASK = 0x0000000000FF0000;
-inline constexpr Bitmask RANK_4_MASK = 0x00000000FF000000;
-inline constexpr Bitmask RANK_5_MASK = 0x000000FF00000000;
-inline constexpr Bitmask RANK_6_MASK = 0x0000FF0000000000;
-inline constexpr Bitmask RANK_7_MASK = 0x00FF000000000000;
-inline constexpr Bitmask RANK_8_MASK = 0xFF00000000000000;
+constexpr Bitboard RANK_1_MASK = 0x00000000000000FF;
+constexpr Bitboard RANK_2_MASK = 0x000000000000FF00;
+constexpr Bitboard RANK_3_MASK = 0x0000000000FF0000;
+constexpr Bitboard RANK_4_MASK = 0x00000000FF000000;
+constexpr Bitboard RANK_5_MASK = 0x000000FF00000000;
+constexpr Bitboard RANK_6_MASK = 0x0000FF0000000000;
+constexpr Bitboard RANK_7_MASK = 0x00FF000000000000;
+constexpr Bitboard RANK_8_MASK = 0xFF00000000000000;
 
-inline constexpr Bitmask A_FILE_MASK = 0x0101010101010101;
-inline constexpr Bitmask B_FILE_MASK = 0x0202020202020202;
-inline constexpr Bitmask C_FILE_MASK = 0x0404040404040404;
-inline constexpr Bitmask D_FILE_MASK = 0x0808080808080808;
-inline constexpr Bitmask E_FILE_MASK = 0x1010101010101010;
-inline constexpr Bitmask F_FILE_MASK = 0x2020202020202020;
-inline constexpr Bitmask G_FILE_MASK = 0x4040404040404040;
-inline constexpr Bitmask H_FILE_MASK = 0x8080808080808080;
+constexpr Bitboard A_FILE_MASK = 0x0101010101010101;
+constexpr Bitboard B_FILE_MASK = 0x0202020202020202;
+constexpr Bitboard C_FILE_MASK = 0x0404040404040404;
+constexpr Bitboard D_FILE_MASK = 0x0808080808080808;
+constexpr Bitboard E_FILE_MASK = 0x1010101010101010;
+constexpr Bitboard F_FILE_MASK = 0x2020202020202020;
+constexpr Bitboard G_FILE_MASK = 0x4040404040404040;
+constexpr Bitboard H_FILE_MASK = 0x8080808080808080;
 
 // --- Sentinel Values ---
 
-inline constexpr Square NO_SQUARE                   = -1;
-inline constexpr CastlingRights NO_CASTLING_RIGHTS  =  0;
-inline constexpr Bitboard EMPTY_BITBOARD            =  0;
+constexpr Square NO_SQUARE                   = -1;
+constexpr CastlingRights NO_CASTLING_RIGHTS  =  0;
+constexpr Bitboard EMPTY_BITBOARD            =  0;
 
 
 // Deltas
-inline constexpr int NORTH_DELTA     =  8;
-inline constexpr int SOUTH_DELTA     = -8;
-inline constexpr int EAST_DELTA      =  1;
-inline constexpr int WEST_DELTA      = -1;
-inline constexpr int NORTHEAST_DELTA =  9;
-inline constexpr int NORTHWEST_DELTA =  7;
-inline constexpr int SOUTHEAST_DELTA = -7;
-inline constexpr int SOUTHWEST_DELTA = -9;
+constexpr int NORTH_DELTA     =  8;
+constexpr int SOUTH_DELTA     = -8;
+constexpr int EAST_DELTA      =  1;
+constexpr int WEST_DELTA      = -1;
+constexpr int NORTHEAST_DELTA =  9;
+constexpr int NORTHWEST_DELTA =  7;
+constexpr int SOUTHEAST_DELTA = -7;
+constexpr int SOUTHWEST_DELTA = -9;
 
 // --- FEN Strings ---
 
-inline constexpr const char* START_POS_FEN = 
+constexpr const char* START_POS_FEN = 
     "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w - - 0 1";
-inline constexpr const char* KIWIPETE_FEN = 
+constexpr const char* KIWIPETE_FEN = 
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-inline constexpr const char* POSITION_3_FEN = // Castling, en passant, and promotions
+constexpr const char* POSITION_3_FEN = // Castling, en passant, and promotions
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-inline constexpr const char* POSITION_4_FEN = // En passant legality
+constexpr const char* POSITION_4_FEN = // En passant legality
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-inline constexpr const char* POSITION_5_FEN = // Quiet move edge cases
+constexpr const char* POSITION_5_FEN = // Quiet move edge cases
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-inline constexpr const char* POSITION_6_FEN = // Promotion + check
+constexpr const char* POSITION_6_FEN = // Promotion + check
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";

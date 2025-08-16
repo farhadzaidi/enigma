@@ -30,7 +30,7 @@ Board::Board() {
 void Board::remove_piece(Color color, Piece piece, Square square) {
     // Create a mask based on the square of the piece and use bitwise AND to
     // remove the piece from each respective bitboard
-    Bitmask mask = ~get_mask(square);
+    Bitboard mask = ~get_mask(square);
     pieces[color][piece] &= mask;
     colors[color] &= mask;
     occupied &= mask;
@@ -42,7 +42,7 @@ void Board::remove_piece(Color color, Piece piece, Square square) {
 void Board::place_piece(Color color, Piece piece, Square square) {
     // create a mask based on the square of the piece and use bitwise OR to
     // place the piece on each respective bitboard
-    Bitmask mask = get_mask(square);
+    Bitboard mask = get_mask(square);
     pieces[color][piece] |= mask;
     colors[color] |= mask;
     occupied |= mask;

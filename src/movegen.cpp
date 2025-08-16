@@ -4,6 +4,14 @@
 #include "types.hpp"
 #include "utils.hpp"
 
+
+static void generate_non_sliding_moves(Board& b, std::vector<Move>& moves) {
+
+}
+
+
+// PAWN MOVES
+
 template<Color C>
 inline Bitboard fwd(Bitboard bb) {
     if constexpr (C == WHITE) return shift_north(bb);
@@ -24,7 +32,7 @@ inline Bitboard fwd_left(Bitboard bb) {
 
 static inline void emit_pawn_moves(
     std::vector<Move>& moves,
-    Bitmask move_mask,
+    Bitboard move_mask,
     MoveType mtype,
     MoveFlag mflag,
     int delta
@@ -38,7 +46,7 @@ static inline void emit_pawn_moves(
 
 static inline void emit_pawn_promo_moves(
     std::vector<Move>& moves,
-    Bitmask move_mask,
+    Bitboard move_mask,
     MoveType mtype,
     MoveFlag mflag,
     int delta
@@ -59,10 +67,10 @@ static void generate_pawn_moves(Board& b, std::vector<Move>& moves) {
     constexpr int fwd_delta = C == WHITE ? NORTH_DELTA : SOUTH_DELTA;
     constexpr int fwd_right_delta = C == WHITE ? NORTHEAST_DELTA : SOUTHWEST_DELTA;
     constexpr int fwd_left_delta = C == WHITE ? NORTHWEST_DELTA : SOUTHEAST_DELTA;
-    constexpr Bitmask promo_rank = C == WHITE ? RANK_7_MASK : RANK_2_MASK;
-    constexpr Bitmask double_push_rank = C == WHITE ? RANK_4_MASK : RANK_5_MASK;
+    constexpr Bitboard promo_rank = C == WHITE ? RANK_7_MASK : RANK_2_MASK;
+    constexpr Bitboard double_push_rank = C == WHITE ? RANK_4_MASK : RANK_5_MASK;
 
-    Bitmask empty = ~b.occupied;
+    Bitboard empty = ~b.occupied;
 
     Bitboard enemy_pieces = b.colors[C ^ 1];
     Bitboard pawns = b.pieces[C][PAWN];
@@ -70,23 +78,23 @@ static void generate_pawn_moves(Board& b, std::vector<Move>& moves) {
     Bitboard non_promo_pawns = pawns & ~promo_rank;
 
     // No promotion
-    Bitmask single_push = fwd<C>(non_promo_pawns) & empty;
-    Bitmask double_push = fwd<C>(single_push) & empty & double_push_rank;
-    Bitmask right_capture = fwd_right<C>(non_promo_pawns) & enemy_pieces;
-    Bitmask left_capture = fwd_left<C>(non_promo_pawns) & enemy_pieces;
+    Bitboard single_push = fwd<C>(non_promo_pawns) & empty;
+    Bitboard double_push = fwd<C>(single_push) & empty & double_push_rank;
+    Bitboard right_capture = fwd_right<C>(non_promo_pawns) & enemy_pieces;
+    Bitboard left_capture = fwd_left<C>(non_promo_pawns) & enemy_pieces;
     
-    Bitmask right_en_passant = 0;
-    Bitmask left_en_passant = 0;
+    Bitboard right_en_passant = 0;
+    Bitboard left_en_passant = 0;
     if (b.en_passant_target != NO_SQUARE) {
-        Bitmask en_passant_target_mask = get_mask(b.en_passant_target);
+        Bitboard en_passant_target_mask = get_mask(b.en_passant_target);
         right_en_passant = fwd_right<C>(non_promo_pawns) & en_passant_target_mask;
         left_en_passant = fwd_left<C>(non_promo_pawns) & en_passant_target_mask;
     }
 
     // Promotion moves
-    Bitmask single_push_promo = fwd<C>(promo_pawns) & empty;
-    Bitmask right_capture_promo = fwd_right<C>(promo_pawns) & enemy_pieces;
-    Bitmask left_capture_promo = fwd_left<C>(promo_pawns) & enemy_pieces;
+    Bitboard single_push_promo = fwd<C>(promo_pawns) & empty;
+    Bitboard right_capture_promo = fwd_right<C>(promo_pawns) & enemy_pieces;
+    Bitboard left_capture_promo = fwd_left<C>(promo_pawns) & enemy_pieces;
 
     // Encode and add moves to vector
     emit_pawn_promo_moves(moves, right_capture_promo, CAPTURE, NORMAL, fwd_right_delta);
