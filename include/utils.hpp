@@ -19,8 +19,8 @@ std::string decode_move_to_uci(Move move);
 
 // Bitboards
 
-static constexpr Bitboard NOT_A_FILE = 0xfefefefefefefefe;
-static constexpr Bitboard NOT_H_FILE = 0x7f7f7f7f7f7f7f7f;
+static constexpr Bitboard NOT_A_FILE = ~A_FILE_MASK;
+static constexpr Bitboard NOT_H_FILE = ~H_FILE_MASK;
 
 template <Direction D>
 constexpr Bitboard shift(Bitboard b) {

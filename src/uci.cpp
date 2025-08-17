@@ -52,7 +52,7 @@ static void cmd_quit() {
     // TODO
 }
 
-static void uci_loop() {
+void uci_loop() {
     // Remove sync with stdio to improve performance
     std::ios::sync_with_stdio(false);
 

@@ -3,12 +3,35 @@
 #include "movegen.hpp"
 #include "types.hpp"
 #include "utils.hpp"
+#include "precompute.hpp"
 
-
-static void generate_non_sliding_moves(Board& b, std::vector<Move>& moves) {
-
+static inline void generate_non_sliding_moves(
+    Board& b, 
+    std::vector<Move>& moves, 
+    Piece piece, 
+    AttackMap attack_map
+) {
+    Bitboard piece_bb = b.pieces[b.to_move][piece];
+    Bitboard friendly_pieces = b.colors[b.to_move];
+    while (piece_bb) {
+        Square from = pop_lsb(piece_bb);
+        Bitboard attacks = attack_map[from] & ~friendly_pieces;
+        while (attacks) {
+            Square to = pop_lsb(attacks);
+            MoveType mtype = b.piece_map[to] == NO_PIECE ? QUIET : CAPTURE;
+            moves.push_back(encode_move(from, to, mtype, NORMAL));
+        }
+    }
 }
 
+static inline void generate_sliding_moves(
+    Board &b,
+    std::vector<Move>& moves, 
+    Piece piece, 
+    AttackMap attack_map
+) {
+    
+}
 
 // PAWN MOVES
 
@@ -19,7 +42,7 @@ static inline void emit_pawn_moves(
     MoveType mtype,
     MoveFlag mflag
 ) {
-    while (move_mask != 0) {
+    while (move_mask) {
         Square to = pop_lsb(move_mask);
         Square from = to - direction;
         moves.push_back(encode_move(from, to, mtype, mflag));
@@ -33,7 +56,7 @@ static inline void emit_pawn_promo_moves(
     MoveType mtype,
     MoveFlag mflag
 ) {
-    while (move_mask != 0) {
+    while (move_mask) {
         Square to = pop_lsb(move_mask);
         Square from = to - direction;
         moves.push_back(encode_move(from, to, mtype, PROMOTION_QUEEN));

@@ -1,9 +1,22 @@
-#include "types.hpp"
-#include "board.hpp"
+#include <vector>
+#include <string>
+#include <cstdlib>
 
-int main() {
-    Board b;
-    b.load_from_fen();
-    b.debug();
-    return 0;
+#include "uci.hpp"
+
+int main(int argc, char* argv[]) {
+    // std::vector<std::string> args;
+    // for (int i = 1; i < argc; i++) {
+    //     args.push_back(argv[i]);
+    // }
+
+    // if (args.size() == 0) {
+    //     uci_loop();
+    // } else {
+    //     if (args[0] == "perft") {
+    //         // Perft
+    //     }
+    // }
+
+    
 }
