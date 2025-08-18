@@ -1,6 +1,7 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
+#include <iostream>
 
 #include "uci.hpp"
 
@@ -17,4 +18,7 @@ int main(int argc, char* argv[]) {
     //         // Perft
     //     }
     // }
+
+    std::clog << "test\n";
+    return 0;
 }

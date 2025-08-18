@@ -35,7 +35,6 @@ constexpr Bitboard shift(Bitboard b) {
         case NORTHWEST:     return (b << 7) & NOT_H_FILE;
         case SOUTHEAST:     return (b >> 7) & NOT_A_FILE;
         case SOUTHWEST:     return (b >> 9) & NOT_H_FILE;
-        default:            return 0;
     }
 }
 

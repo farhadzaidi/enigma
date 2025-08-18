@@ -1,41 +1,60 @@
 #include <vector>
+#include <span>
 
 #include "movegen.hpp"
 #include "types.hpp"
 #include "utils.hpp"
 #include "precompute.hpp"
 
-static inline void generate_non_sliding_moves(
-    Board& b, 
-    std::vector<Move>& moves, 
-    Piece piece, 
-    AttackMap attack_map
-) {
-    Bitboard piece_bb = b.pieces[b.to_move][piece];
-    Bitboard friendly_pieces = b.colors[b.to_move];
+// NON-PAWN MOVES
+
+template <Piece P>
+static inline Bitboard generate_sliding_attack_mask(const Board& b, Square from) {
+    // Assign constants based on sliding piece type
+    constexpr bool is_bishop = P == BISHOP;
+    const auto& attack_table = is_bishop ? BISHOP_ATTACK_TABLE : ROOK_ATTACK_TABLE; 
+    const auto& blocker_map  = is_bishop ? BISHOP_BLOCKER_MAP : ROOK_BLOCKER_MAP;
+    const auto& magic        = is_bishop ? BISHOP_MAGIC : ROOK_MAGIC;
+    const auto& offset       = is_bishop ? BISHOP_OFFSET : ROOK_OFFSET;
+        
+    // Look up sliding piece attacks from attack table based on blocker pattern
+    Bitboard blockers = b.occupied & blocker_map[from];
+    int num_blockers = std::popcount(blocker_map[from]);
+    size_t index = (blockers * magic[from]) >> (64 - num_blockers);
+    return attack_table[offset[from] + index];
+}
+
+template <Piece P>
+static inline void generate_piece_moves(const Board& b, std::vector<Move>& moves) {
+    Bitboard piece_bb = b.pieces[b.to_move][P];
+    Bitboard not_friendly = ~b.colors[b.to_move];
     while (piece_bb) {
         Square from = pop_lsb(piece_bb);
-        Bitboard attacks = attack_map[from] & ~friendly_pieces;
-        while (attacks) {
-            Square to = pop_lsb(attacks);
+        Bitboard attack_mask;
+        switch (P) {
+            case BISHOP: attack_mask = generate_sliding_attack_mask<BISHOP>(b, from); break;
+            case KNIGHT: attack_mask = KNIGHT_ATTACK_MAP[from]; break;
+            case ROOK:   attack_mask = generate_sliding_attack_mask<ROOK>(b, from); break;
+            case KING:   attack_mask = KING_ATTACK_MAP[from]; break;
+            case QUEEN:  
+                attack_mask = 
+                    generate_sliding_attack_mask<BISHOP>(b, from) | 
+                    generate_sliding_attack_mask<ROOK>(b, from);
+                break;
+        }
+
+        attack_mask &= not_friendly;
+        while (attack_mask) {
+            Square to = pop_lsb(attack_mask);
             MoveType mtype = b.piece_map[to] == NO_PIECE ? QUIET : CAPTURE;
             moves.push_back(encode_move(from, to, mtype, NORMAL));
         }
     }
 }
 
-static inline void generate_sliding_moves(
-    Board &b,
-    std::vector<Move>& moves, 
-    Piece piece, 
-    AttackMap attack_map
-) {
-    
-}
-
 // PAWN MOVES
 
-static inline void emit_pawn_moves(
+static inline void encode_pawn_moves(
     std::vector<Move>& moves,
     Bitboard move_mask,
     Direction direction,
@@ -49,7 +68,7 @@ static inline void emit_pawn_moves(
     }
 }
 
-static inline void emit_pawn_promo_moves(
+static inline void encode_pawn_promo_moves(
     std::vector<Move>& moves,
     Bitboard move_mask,
     Direction direction,
@@ -67,7 +86,7 @@ static inline void emit_pawn_promo_moves(
 }
 
 template<Color C>
-static void generate_pawn_moves(Board& b, std::vector<Move>& moves) {
+static inline void generate_pawn_moves(const Board& b, std::vector<Move>& moves) {
     // Compile-time constants derived from template
     constexpr Direction FWD              = C == WHITE ? NORTH : SOUTH;
     constexpr Direction FWD_FWD          = C == WHITE ? NORTH_NORTH : SOUTH_SOUTH;
@@ -102,14 +121,25 @@ static void generate_pawn_moves(Board& b, std::vector<Move>& moves) {
     Bitboard left_capture_promo     = shift<FWD_LEFT>(promo_pawns) & enemy_pieces;
 
     // Encode and add moves to vector
-    emit_pawn_promo_moves(moves, right_capture_promo, FWD_RIGHT, CAPTURE, NORMAL);
-    emit_pawn_promo_moves(moves, left_capture_promo, FWD_LEFT, CAPTURE, NORMAL);
-    emit_pawn_promo_moves(moves, single_push_promo, FWD, QUIET, NORMAL);
+    encode_pawn_promo_moves(moves, right_capture_promo, FWD_RIGHT, CAPTURE, NORMAL);
+    encode_pawn_promo_moves(moves, left_capture_promo, FWD_LEFT, CAPTURE, NORMAL);
+    encode_pawn_promo_moves(moves, single_push_promo, FWD, QUIET, NORMAL);
 
-    emit_pawn_moves(moves, right_capture, FWD_RIGHT, CAPTURE, NORMAL);
-    emit_pawn_moves(moves, left_capture, FWD_LEFT, CAPTURE, NORMAL);
-    emit_pawn_moves(moves, right_en_passant, FWD_RIGHT, CAPTURE, EN_PASSANT);
-    emit_pawn_moves(moves, left_en_passant, FWD_LEFT, CAPTURE, EN_PASSANT);
-    emit_pawn_moves(moves, single_push, FWD, QUIET, NORMAL);
-    emit_pawn_moves(moves, double_push, FWD_FWD, QUIET, NORMAL);
+    encode_pawn_moves(moves, right_capture, FWD_RIGHT, CAPTURE, NORMAL);
+    encode_pawn_moves(moves, left_capture, FWD_LEFT, CAPTURE, NORMAL);
+    encode_pawn_moves(moves, right_en_passant, FWD_RIGHT, CAPTURE, EN_PASSANT);
+    encode_pawn_moves(moves, left_en_passant, FWD_LEFT, CAPTURE, EN_PASSANT);
+    encode_pawn_moves(moves, single_push, FWD, QUIET, NORMAL);
+    encode_pawn_moves(moves, double_push, FWD_FWD, QUIET, NORMAL);
+}
+
+// CASTLING MOVES
+
+static inline void generate_castling_moves() {
+    // TODO
+}
+
+// Main move generation function (exposed in header)
+std::vector<Move> generate_moves(Board& b) {
+    
 }

@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <iostream>
+#include <span>
 
 #include "types.hpp"
 #include "utils.hpp"
@@ -68,7 +69,7 @@ static constexpr Bitboard walk(Square sq, Bitboard blockers) {
 
 // Map of all blocker squares for each square that the bishop is on
 // So each entry contains a mask of all blocker squares for the bishop on that square
-static constexpr BlockerMap BISHOP_BLOCKER_MAP = []() {
+constexpr BlockerMap BISHOP_BLOCKER_MAP = []() {
     BlockerMap map{};
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
         map[sq] =
@@ -81,7 +82,7 @@ static constexpr BlockerMap BISHOP_BLOCKER_MAP = []() {
 }();
 
 // Same thing as above but for rook
-static constexpr BlockerMap ROOK_BLOCKER_MAP = []() {
+constexpr BlockerMap ROOK_BLOCKER_MAP = []() {
     BlockerMap map{};
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
         map[sq] =
@@ -109,29 +110,26 @@ static constexpr size_t compute_attack_table_size(const BlockerMap& blocker_map)
 static constexpr size_t BISHOP_ATTACK_TABLE_SIZE = compute_attack_table_size(BISHOP_BLOCKER_MAP);
 static constexpr size_t ROOK_ATTACK_TABLE_SIZE = compute_attack_table_size(ROOK_BLOCKER_MAP);
 
-// Helper function to compute offsets for indexing into attack tables
+// Helper function to compute offset for indexing into attack tables for each square
 // Very similar logic to compute_attack_table_sizes but here we're saving cumulative
 // sizes as we loop through all the squares
-static constexpr std::array<size_t, NUM_SQUARES> compute_offsets(const BlockerMap& blocker_map) {
+static constexpr std::array<size_t, NUM_SQUARES> compute_offset(const BlockerMap& blocker_map) {
     size_t size = 0;
-    std::array<size_t, NUM_SQUARES> offsets;
+    std::array<size_t, NUM_SQUARES> offset;
 
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
-        offsets[sq] = size;
+        offset[sq] = size;
         Bitboard blocker_mask = blocker_map[sq];
         size += 1 << std::popcount(blocker_mask);
     }
     
-    return offsets;
+    return offset;
 };
-constexpr std::array<size_t, NUM_SQUARES> BISHOP_OFFSETS = compute_offsets(BISHOP_BLOCKER_MAP);
-constexpr std::array<size_t, NUM_SQUARES> ROOK_OFFSETS = compute_offsets(ROOK_BLOCKER_MAP);
+constexpr auto BISHOP_OFFSET = compute_offset(BISHOP_BLOCKER_MAP);
+constexpr auto ROOK_OFFSET = compute_offset(ROOK_BLOCKER_MAP);
 
-using BishopAttackTable = std::array<Bitboard, BISHOP_ATTACK_TABLE_SIZE>;
-using RookAttackTable   = std::array<Bitboard, ROOK_ATTACK_TABLE_SIZE>;
-
-constexpr BishopAttackTable BISHOP_ATTACK_TABLE = []() {
-    BishopAttackTable table{};
+static constexpr auto _BISHOP_ATTACK_TABLE = []() {
+    std::array<Bitboard, BISHOP_ATTACK_TABLE_SIZE> table{};
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
         Bitboard blocker_mask = BISHOP_BLOCKER_MAP[sq];
         int num_blockers = std::popcount(blocker_mask);
@@ -150,10 +148,10 @@ constexpr BishopAttackTable BISHOP_ATTACK_TABLE = []() {
 
             // Compute index using the magic number for this square and only retain
             // the relevant bits
-            size_t index = (subset * BISHOP_MAGIC_MAP[sq]) >> (64 - num_blockers);
+            size_t index = (subset * BISHOP_MAGIC[sq]) >> (64 - num_blockers);
 
             // Index into the attack table using the offset and cache the attack mask
-            table[BISHOP_OFFSETS[sq] + index] = attack_mask;
+            table[BISHOP_OFFSET[sq] + index] = attack_mask;
 
             // Terminating condition
             if (subset == 0) {
@@ -166,9 +164,9 @@ constexpr BishopAttackTable BISHOP_ATTACK_TABLE = []() {
 }();
 
 // Too big to be computed at compile time
-inline const RookAttackTable ROOK_ATTACK_TABLE = []() {
+static inline const auto _ROOK_ATTACK_TABLE = []() {
     // Same logic as bishop attack table but using rook constants
-    RookAttackTable table{};
+    std::array<Bitboard, ROOK_ATTACK_TABLE_SIZE> table{};
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
         Bitboard blocker_mask = ROOK_BLOCKER_MAP[sq];
         int num_blockers = std::popcount(blocker_mask);
@@ -180,8 +178,8 @@ inline const RookAttackTable ROOK_ATTACK_TABLE = []() {
                 walk<EAST> (sq, shift<EAST> (subset)) |
                 walk<WEST> (sq, shift<WEST> (subset));
  
-            size_t index = (subset * ROOK_MAGIC_MAP[sq]) >> (64 - num_blockers);
-            table[ROOK_OFFSETS[sq] + index] = attack_mask;
+            size_t index = (subset * ROOK_MAGIC[sq]) >> (64 - num_blockers);
+            table[ROOK_OFFSET[sq] + index] = attack_mask;
 
             if (subset == 0) {
                 break;
@@ -191,6 +189,10 @@ inline const RookAttackTable ROOK_ATTACK_TABLE = []() {
 
     return table;
 }();
+
+// Expose attack tables as std::span since they have different types due to different sizes
+constexpr std::span<const Bitboard> BISHOP_ATTACK_TABLE{_BISHOP_ATTACK_TABLE};
+inline const std::span<const Bitboard> ROOK_ATTACK_TABLE{_ROOK_ATTACK_TABLE};
 
 // This function is used to compute magic numbers which are useful for generating
 // indices for rook and bishop attack tables.
@@ -211,12 +213,12 @@ inline void compute_magic_numbers(const BlockerMap& blocker_map) {
             // Else, mark this index as used and keep going
         // 5. If a number generates all unique indices, then this is a valid magic number
         while (true) {
-            MagicNumber candidate = random_magic();
+            uint64_t candidate = random_magic();
             std::vector<bool> used(num_subsets, false);
             bool is_valid_magic = true;
 
             for (Bitboard subset = blocker_mask;; subset = (subset - 1) & blocker_mask) {
-                size_t index = (subset * candidate) >> (64 - num_blockers);
+                size_t index = (subset * candidate) >> (NUM_SQUARES - num_blockers);
                 if (used[index]) {
                     is_valid_magic = false;
                     break;

@@ -14,7 +14,6 @@ constexpr int BOARD_SIZE     = 8;
 // --- Type Definitions ---
 
 using Bitboard          = uint64_t;
-using MagicNumber       = uint64_t;
 using Move              = uint16_t;
 using MoveType          = uint16_t;
 using MoveFlag          = uint16_t;
@@ -27,7 +26,6 @@ using File              = uint8_t;
 using Direction         = int;
 using AttackMap         = std::array<Bitboard, NUM_SQUARES>;
 using BlockerMap        = std::array<Bitboard, NUM_SQUARES>;
-using MagicMap          = std::array<MagicNumber, NUM_SQUARES>;
 
 // --- Enums ---
 
@@ -162,7 +160,7 @@ constexpr const char* POSITION_6_FEN = // Promotion + check
 // These are magic numbers which are useful for looking up attack masks for sliding pieces.
 // They are generated (via brute-force) using compute_magic_numbers() inside precompute.hpp
 
-constexpr MagicMap BISHOP_MAGIC_MAP = {
+constexpr std::array<uint64_t, NUM_SQUARES> BISHOP_MAGIC = {
     290491063393657344ULL,
     1134842633265152ULL,
     4649984774927155200ULL,
@@ -229,7 +227,7 @@ constexpr MagicMap BISHOP_MAGIC_MAP = {
     5206163660333940992ULL,
 };
 
-constexpr MagicMap ROOK_MAGIC_MAP = {
+constexpr std::array<uint64_t, NUM_SQUARES>  ROOK_MAGIC = {
     1765411328882712592ULL,
     8088482524017336328ULL,
     4683796427680251968ULL,
