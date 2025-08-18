@@ -46,3 +46,4 @@ inline Square pop_lsb(Bitboard& b) {
     b &= b - 1; // pop
     return sq;
 }
+
