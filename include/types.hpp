@@ -23,6 +23,7 @@ using Piece             = uint8_t;
 using CastlingRights    = uint8_t;
 using Rank              = uint8_t;
 using File              = uint8_t;
+using CastleType        = uint8_t;
 using Direction         = int;
 using AttackMap         = std::array<Bitboard, NUM_SQUARES>;
 using BlockerMap        = std::array<Bitboard, NUM_SQUARES>;
@@ -115,25 +116,40 @@ enum MoveFlagEnum : MoveFlag {
     PROMOTION_QUEEN
 };
 
-// Bitboards
+enum CastleTypeEnum : CastleType {
+    NO_CASTLE_TYPE,
+    WHITE_SHORT_CASTLE_TYPE,
+    WHITE_LONG_CASTLE_TYPE,
+    BLACK_SHORT_CASTLE_TYPE,
+    BLACK_LONG_CASTLE_TYPE
+};
 
-constexpr Bitboard RANK_1_MASK = 0x00000000000000FF;
-constexpr Bitboard RANK_2_MASK = 0x000000000000FF00;
-constexpr Bitboard RANK_3_MASK = 0x0000000000FF0000;
-constexpr Bitboard RANK_4_MASK = 0x00000000FF000000;
-constexpr Bitboard RANK_5_MASK = 0x000000FF00000000;
-constexpr Bitboard RANK_6_MASK = 0x0000FF0000000000;
-constexpr Bitboard RANK_7_MASK = 0x00FF000000000000;
-constexpr Bitboard RANK_8_MASK = 0xFF00000000000000;
+// Ranks and Files
 
-constexpr Bitboard A_FILE_MASK = 0x0101010101010101;
-constexpr Bitboard B_FILE_MASK = 0x0202020202020202;
-constexpr Bitboard C_FILE_MASK = 0x0404040404040404;
-constexpr Bitboard D_FILE_MASK = 0x0808080808080808;
-constexpr Bitboard E_FILE_MASK = 0x1010101010101010;
-constexpr Bitboard F_FILE_MASK = 0x2020202020202020;
-constexpr Bitboard G_FILE_MASK = 0x4040404040404040;
-constexpr Bitboard H_FILE_MASK = 0x8080808080808080;
+constexpr Bitboard RANK_1_MASK = 0x00000000000000FFULL;
+constexpr Bitboard RANK_2_MASK = 0x000000000000FF00ULL;
+constexpr Bitboard RANK_3_MASK = 0x0000000000FF0000ULL;
+constexpr Bitboard RANK_4_MASK = 0x00000000FF000000ULL;
+constexpr Bitboard RANK_5_MASK = 0x000000FF00000000ULL;
+constexpr Bitboard RANK_6_MASK = 0x0000FF0000000000ULL;
+constexpr Bitboard RANK_7_MASK = 0x00FF000000000000ULL;
+constexpr Bitboard RANK_8_MASK = 0xFF00000000000000ULL;
+
+constexpr Bitboard A_FILE_MASK = 0x0101010101010101ULL;
+constexpr Bitboard B_FILE_MASK = 0x0202020202020202ULL;
+constexpr Bitboard C_FILE_MASK = 0x0404040404040404ULL;
+constexpr Bitboard D_FILE_MASK = 0x0808080808080808ULL;
+constexpr Bitboard E_FILE_MASK = 0x1010101010101010ULL;
+constexpr Bitboard F_FILE_MASK = 0x2020202020202020ULL;
+constexpr Bitboard G_FILE_MASK = 0x4040404040404040ULL;
+constexpr Bitboard H_FILE_MASK = 0x8080808080808080ULL;
+
+// Castling Path
+
+constexpr Bitboard WHITE_LONG_CASTLE_PATH   = 0x000000000000000EULL;
+constexpr Bitboard WHITE_SHORT_CASTLE_PATH  = 0x0000000000000060ULL;
+constexpr Bitboard BLACK_LONG_CASTLE_PATH   = 0x0E00000000000000ULL;
+constexpr Bitboard BLACK_SHORT_CASTLE_PATH  = 0x6000000000000000ULL;
 
 // --- Sentinel Values ---
 
@@ -148,13 +164,13 @@ constexpr const char* START_POS_FEN =
 constexpr const char* KIWIPETE_FEN = 
     "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
 constexpr const char* POSITION_3_FEN = // Castling, en passant, and promotions
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1";
 constexpr const char* POSITION_4_FEN = // En passant legality
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
 constexpr const char* POSITION_5_FEN = // Quiet move edge cases
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8  ";
 constexpr const char* POSITION_6_FEN = // Promotion + check
-    "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    "r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ";
 
 // --- Magic Maps ---
 // These are magic numbers which are useful for looking up attack masks for sliding pieces.

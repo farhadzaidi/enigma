@@ -58,8 +58,7 @@ Color Board::get_color(Square square) const {
 }
 
 void Board::load_from_fen(const std::string& fen) {
-    std::clog << "\n---- Loading board from FEN ----\n";
-    std::clog << "FEN: " << fen << "\n";
+    std::clog << "\nFEN: " << fen << "\n";
 
     std::vector<std::string> parts;
     std::stringstream ss(fen);
@@ -231,7 +230,7 @@ void Board::set_en_passant_target(Color color, Piece piece, Square from, Square 
         color == BLACK
         && piece == PAWN
         && get_rank(from) == RANK_7
-        && get_rank(to) == RANK_8
+        && get_rank(to) == RANK_5
     ) {
         en_passant_target = to + 8; // Directly behind the black pawn (north)
     }
