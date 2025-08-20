@@ -51,6 +51,21 @@ constexpr AttackMap KING_ATTACK_MAP = []() {
     return map;
 }();
 
+// Array of attack maps used to check if a square is attacked by pawns
+// Indexed by attacking color (e.g. PAWN_ATTACK_MAP[BLACK] checks if
+// that square is attacked by black pawns)
+constexpr std::array<AttackMap, NUM_COLORS> PAWN_ATTACK_MAPS = []() {
+    AttackMap white_map{}; // White attacking pawns
+    AttackMap black_map{}; // Black attacking pawns
+    for (Square sq = 0; sq < NUM_SQUARES; sq++) {
+        Bitboard mask = get_mask(sq);
+        white_map[sq] = shift<SOUTHEAST>(mask) | shift<SOUTHWEST>(mask);
+        black_map[sq] = shift<NORTHEAST>(mask) | shift<NORTHWEST>(mask);
+    }
+
+    return std::array<AttackMap, NUM_COLORS>{white_map, black_map};
+}();
+
 // SLIDING PIECES
 
 // Helper function that creates a mask from a given square and shifts that mask in

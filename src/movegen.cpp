@@ -32,25 +32,17 @@ static inline bool is_square_attacked(const Board& b, Color attacker_color, Squa
     if (KING_ATTACK_MAP[sq] & attackers[KING]) return true;
 
     // Check if attacked by bishop or queen
-    if (attackers[BISHOP] | attackers[QUEEN]) {
-        Bitboard bishop_attack_mask = generate_sliding_attack_mask<BISHOP>(b, sq);
-        if ((bishop_attack_mask & attackers[BISHOP]) || (bishop_attack_mask & attackers[QUEEN]))
-            return true;
-    }
+    Bitboard bishop_attack_mask = generate_sliding_attack_mask<BISHOP>(b, sq);
+    if ((bishop_attack_mask & attackers[BISHOP]) || (bishop_attack_mask & attackers[QUEEN]))
+        return true;
 
     // Check if attacked by rook or queen
-    if (attackers[ROOK] | attackers[QUEEN]) {
-        Bitboard rook_attack_mask = generate_sliding_attack_mask<ROOK>(b, sq);
-        if ((rook_attack_mask & attackers[ROOK]) || (rook_attack_mask & attackers[QUEEN]))
-            return true;
-    }
+    Bitboard rook_attack_mask = generate_sliding_attack_mask<ROOK>(b, sq);
+    if ((rook_attack_mask & attackers[ROOK]) || (rook_attack_mask & attackers[QUEEN]))
+        return true;
 
     // Check if attacked by pawn
-    Bitboard square_mask = get_mask(sq);
-    Bitboard pawn_attack_mask = attacker_color == BLACK
-        ? shift<NORTHEAST>(square_mask) | shift<NORTHWEST>(square_mask)
-        : shift<SOUTHEAST>(square_mask) | shift<SOUTHWEST>(square_mask);
-    return pawn_attack_mask & attackers[PAWN];
+    return PAWN_ATTACK_MAPS[attacker_color][sq] & attackers[PAWN];
 }
 
 static inline void generate_move_if_legal(
@@ -79,14 +71,23 @@ static inline void generate_piece_moves(Board& b, std::vector<Move>& moves) {
     while (piece_bb) {
         Square from = pop_lsb(piece_bb);
         Bitboard attack_mask;
+        
         switch (P) {
-            case BISHOP: attack_mask = generate_sliding_attack_mask<BISHOP>(b, from); break;
-            case KNIGHT: attack_mask = KNIGHT_ATTACK_MAP[from]; break;
-            case ROOK:   attack_mask = generate_sliding_attack_mask<ROOK>(b, from); break;
-            case KING:   attack_mask = KING_ATTACK_MAP[from]; break;
-            case QUEEN:  
+            case BISHOP:
+                attack_mask = generate_sliding_attack_mask<BISHOP>(b, from);
+                break;
+            case KNIGHT:
+                attack_mask = KNIGHT_ATTACK_MAP[from];
+                break;
+            case ROOK:
+                attack_mask = generate_sliding_attack_mask<ROOK>(b, from);
+                break;
+            case KING:
+                attack_mask = KING_ATTACK_MAP[from];
+                break;
+            case QUEEN:
                 attack_mask = 
-                    generate_sliding_attack_mask<BISHOP>(b, from) | 
+                    generate_sliding_attack_mask<BISHOP>(b, from) |
                     generate_sliding_attack_mask<ROOK>(b, from);
                 break;
         }
