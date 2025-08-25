@@ -4,13 +4,27 @@
 #include <stack>
 
 #include "types.hpp"
-#include "state.hpp"
 
 // Type definitions for board representation
 using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;
 using ColorBitboards    = std::array<Bitboard, NUM_COLORS>;
 using PieceMap          = std::array<Piece, NUM_SQUARES>;
 using KingSquares       = std::array<Square, NUM_COLORS>;
+
+// This struct contains important board state information which is useful for undoing moves
+// These attributes are overwritten when making a move and unable to be restored from the move encoding
+struct State {
+    Square en_passant_target;
+    CastlingRights castling_rights;
+    uint8_t halfmoves; // Truncating from int to U8 to save space
+    Piece captured_piece;
+
+    State(Square ep, CastlingRights cr, uint8_t hm, Piece cp) :
+        en_passant_target(ep),
+        castling_rights(cr),
+        halfmoves(hm),
+        captured_piece(cp) {}
+};
 
 class Board {
 public:
@@ -37,6 +51,7 @@ public:
     std::stack<State> states;
 
     Board();
+    void reset();
 
     void remove_piece(Color color, Piece piece, Square square);
     void place_piece(Color color, Piece piece, Square square);

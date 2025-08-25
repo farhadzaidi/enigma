@@ -2,4 +2,4 @@
 
 #include "board.hpp"
 
-int perft(Board &b, int depth);
+uint64_t perft(Board &b, int depth);

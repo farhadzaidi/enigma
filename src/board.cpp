@@ -12,6 +12,10 @@
 #include "move.hpp"
 
 Board::Board() {
+    reset();
+}
+
+void Board::reset() {
     pieces[WHITE].fill(EMPTY_BITBOARD);
     pieces[BLACK].fill(EMPTY_BITBOARD);
     colors.fill(EMPTY_BITBOARD);
@@ -25,6 +29,9 @@ Board::Board() {
     en_passant_target = NO_SQUARE;
     halfmoves = 0;
     fullmoves = 0;
+
+    moves = std::stack<Move>();
+    states = std::stack<State>();
 }
 
 void Board::remove_piece(Color color, Piece piece, Square square) {
@@ -58,23 +65,24 @@ Color Board::get_color(Square square) const {
 }
 
 void Board::load_from_fen(const std::string& fen) {
-    std::clog << "\nFEN: " << fen << "\n";
-
     std::vector<std::string> parts;
     std::stringstream ss(fen);
     std::string item;
 
     // Split the fen string using a space as the delimiter
     while(std::getline(ss, item, ' ')) {
-        parts.push_back(item);
+        // Skip empty strings caused by multiple spaces
+        if (!item.empty()) {
+            parts.push_back(item);
+        }
     }
 
     std::string position            = parts[0];
-    std::string to_move             = parts[1];
-    std::string castling_rights     = parts[2];
-    std::string en_passant_target   = parts[3];
-    std::string halfmoves           = parts[4];
-    std::string fullmoves           = parts[5];
+    std::string to_move             = parts.size() > 1 ? parts[1] : "w";
+    std::string castling_rights     = parts.size() > 2 ? parts[2] : "-";
+    std::string en_passant_target   = parts.size() > 3 ? parts[3] : "-";
+    std::string halfmoves           = parts.size() > 4 ? parts[4] : "0";
+    std::string fullmoves           = parts.size() > 5 ? parts[5] : "1";
 
     // Set up position starting from top left
     int rank = 7;

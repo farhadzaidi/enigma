@@ -10,6 +10,9 @@
 #include "utils.hpp"
 #include "random.hpp"
 
+using AttackMap         = std::array<Bitboard, NUM_SQUARES>;
+using BlockerMap        = std::array<Bitboard, NUM_SQUARES>;
+
 // NON-SLIDING PIECES
 
 // Straightforward attack map generation: from each square, we just try going
@@ -51,10 +54,11 @@ constexpr AttackMap KING_ATTACK_MAP = []() {
     return map;
 }();
 
+
 // Array of attack maps used to check if a square is attacked by pawns
 // Indexed by attacking color (e.g. PAWN_ATTACK_MAP[BLACK] checks if
 // that square is attacked by black pawns)
-constexpr std::array<AttackMap, NUM_COLORS> PAWN_ATTACK_MAPS = []() {
+constexpr auto PAWN_ATTACK_MAPS = []() {
     AttackMap white_map{}; // White attacking pawns
     AttackMap black_map{}; // Black attacking pawns
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
@@ -72,7 +76,7 @@ constexpr std::array<AttackMap, NUM_COLORS> PAWN_ATTACK_MAPS = []() {
 // a given direction until it encounters some blocker or goes off the board
 // Returns a mask with nonblocked squares on the board set to 1
 template <Direction D>
-static constexpr Bitboard walk(Square sq, Bitboard blockers) {
+static constexpr Bitboard walk(Square sq, Bitboard blockers = 0) {
     Bitboard attack = 0;
     Bitboard mask = shift<D>(get_mask(sq));
     while (mask && ((mask & blockers) == 0)) {
@@ -84,6 +88,7 @@ static constexpr Bitboard walk(Square sq, Bitboard blockers) {
 
 // Map of all blocker squares for each square that the bishop is on
 // So each entry contains a mask of all blocker squares for the bishop on that square
+// Doesn't include edges since a piece on the edge isn't blocking another square
 constexpr BlockerMap BISHOP_BLOCKER_MAP = []() {
     BlockerMap map{};
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
@@ -143,11 +148,10 @@ static constexpr std::array<size_t, NUM_SQUARES> compute_offset(const BlockerMap
 constexpr auto BISHOP_OFFSET = compute_offset(BISHOP_BLOCKER_MAP);
 constexpr auto ROOK_OFFSET = compute_offset(ROOK_BLOCKER_MAP);
 
-static constexpr auto _BISHOP_ATTACK_TABLE = []() {
+static inline const auto _BISHOP_ATTACK_TABLE = []() {
     std::array<Bitboard, BISHOP_ATTACK_TABLE_SIZE> table{};
     for (Square sq = 0; sq < NUM_SQUARES; sq++) {
         Bitboard blocker_mask = BISHOP_BLOCKER_MAP[sq];
-        int num_blockers = std::popcount(blocker_mask);
 
         // Neat bit manipulation trick to enumerate all subsets of the blocker mask
         // i.e. get all possible blocker configurations
@@ -161,9 +165,8 @@ static constexpr auto _BISHOP_ATTACK_TABLE = []() {
                 walk<SOUTHEAST>(sq, shift<SOUTHEAST>(subset)) |
                 walk<SOUTHWEST>(sq, shift<SOUTHWEST>(subset));
 
-            // Compute index using the magic number for this square and only retain
-            // the relevant bits
-            size_t index = (subset * BISHOP_MAGIC[sq]) >> (64 - num_blockers);
+            // Get index by either using PEXT or magic number
+            size_t index = get_attack_table_index(subset, blocker_mask, BISHOP_MAGIC[sq]);
 
             // Index into the attack table using the offset and cache the attack mask
             table[BISHOP_OFFSET[sq] + index] = attack_mask;
@@ -178,7 +181,6 @@ static constexpr auto _BISHOP_ATTACK_TABLE = []() {
     return table;
 }();
 
-// Too big to be computed at compile time
 static inline const auto _ROOK_ATTACK_TABLE = []() {
     // Same logic as bishop attack table but using rook constants
     std::array<Bitboard, ROOK_ATTACK_TABLE_SIZE> table{};
@@ -193,7 +195,7 @@ static inline const auto _ROOK_ATTACK_TABLE = []() {
                 walk<EAST> (sq, shift<EAST> (subset)) |
                 walk<WEST> (sq, shift<WEST> (subset));
  
-            size_t index = (subset * ROOK_MAGIC[sq]) >> (64 - num_blockers);
+            size_t index = get_attack_table_index(subset, blocker_mask, ROOK_MAGIC[sq]);
             table[ROOK_OFFSET[sq] + index] = attack_mask;
 
             if (subset == 0) {
@@ -206,7 +208,7 @@ static inline const auto _ROOK_ATTACK_TABLE = []() {
 }();
 
 // Expose attack tables as std::span since they have different types due to different sizes
-constexpr std::span<const Bitboard> BISHOP_ATTACK_TABLE{_BISHOP_ATTACK_TABLE};
+inline const std::span<const Bitboard> BISHOP_ATTACK_TABLE{_BISHOP_ATTACK_TABLE};
 inline const std::span<const Bitboard> ROOK_ATTACK_TABLE{_ROOK_ATTACK_TABLE};
 
 // This function is used to compute magic numbers which are useful for generating
@@ -252,3 +254,113 @@ inline void compute_magic_numbers(const BlockerMap& blocker_map) {
         }
     }
 }
+
+// Ray masks from each square to the end of the board (not including the square)
+using RayMap = std::array<Bitboard, NUM_SQUARES>;
+
+template <Direction D>
+static constexpr RayMap compute_rays() {
+    RayMap ray_map{};
+    for (Square sq = 0; sq < NUM_SQUARES; sq++) {
+        ray_map[sq] = walk<D>(sq);
+    }
+    return ray_map;
+};
+
+constexpr RayMap NORTH_RAY_MAP     = compute_rays<NORTH>();
+constexpr RayMap SOUTH_RAY_MAP     = compute_rays<SOUTH>();
+constexpr RayMap EAST_RAY_MAP      = compute_rays<EAST>();
+constexpr RayMap WEST_RAY_MAP      = compute_rays<WEST>();
+constexpr RayMap NORTHEAST_RAY_MAP = compute_rays<NORTHEAST>();
+constexpr RayMap NORTHWEST_RAY_MAP = compute_rays<NORTHWEST>();
+constexpr RayMap SOUTHEAST_RAY_MAP = compute_rays<SOUTHEAST>();
+constexpr RayMap SOUTHWEST_RAY_MAP = compute_rays<SOUTHWEST>();
+constexpr RayMap EMPTY_RAY_MAP{};
+
+
+
+// Using custom absolute value function since std::abs is not constexpr
+constexpr int abs_val(int x) { return x > 0 ? x : -x;}
+
+// Get the direction from square a to square b if they are collinear, else return NO_DIRECTION
+constexpr Direction get_direction(Square a, Square b) {
+    if (a == b) return NO_DIRECTION;
+
+    int a_rank = get_rank(a);
+    int a_file = get_file(a);
+
+    int b_rank = get_rank(b);
+    int b_file = get_file(b);
+
+    // Check collinearity
+    int dx = abs_val(a_file - b_file);
+    int dy = abs_val(a_rank - b_rank);
+    bool are_colinear = (
+        dx == 0 || // same file
+        dy == 0 || // same rank
+        abs_val(dx) == abs_val(dy) // same diagonal
+    );
+    if (!are_colinear) return NO_DIRECTION;
+
+    int vertical = a_rank != b_rank
+        ? (a_rank < b_rank ? NORTH : SOUTH)
+        : NO_DIRECTION;
+    
+    int horizontal = a_file != b_file
+        ? (a_file < b_file ? EAST : WEST)
+        : NO_DIRECTION;
+    
+    return vertical + horizontal;
+}
+
+// Maps directions to ray maps since we can't index with directions
+constexpr const RayMap& get_ray_map(Direction direction) {
+    switch (direction) {
+        case NORTH:        return NORTH_RAY_MAP;
+        case SOUTH:        return SOUTH_RAY_MAP;
+        case EAST:         return EAST_RAY_MAP;
+        case WEST:         return WEST_RAY_MAP;
+        case NORTHEAST:    return NORTHEAST_RAY_MAP;
+        case NORTHWEST:    return NORTHWEST_RAY_MAP;
+        case SOUTHEAST:    return SOUTHEAST_RAY_MAP;
+        case SOUTHWEST:    return SOUTHWEST_RAY_MAP;
+        default:           return EMPTY_RAY_MAP;
+    }
+}
+
+template <Direction D>
+constexpr const RayMap& get_ray_map() {
+    if constexpr (D == NORTH)     return NORTH_RAY_MAP;
+    if constexpr (D == SOUTH)     return SOUTH_RAY_MAP;
+    if constexpr (D == EAST)      return EAST_RAY_MAP;
+    if constexpr (D == WEST)      return WEST_RAY_MAP;
+    if constexpr (D == NORTHEAST) return NORTHEAST_RAY_MAP;
+    if constexpr (D == NORTHWEST) return NORTHWEST_RAY_MAP;
+    if constexpr (D == SOUTHEAST) return SOUTHEAST_RAY_MAP;
+    if constexpr (D == SOUTHWEST) return SOUTHWEST_RAY_MAP;
+    else                          return EMPTY_RAY_MAP;
+}
+
+// Computes lines from square a to square b including square b
+constexpr auto LINES = []() {
+    std::array<std::array<Bitboard, NUM_SQUARES>, NUM_SQUARES> lines{};
+    for (Square a = 0; a < NUM_SQUARES; a++) {
+        for (Square b = 0; b < NUM_SQUARES; b++) {
+            Direction towards_b = get_direction(a, b);
+            if (towards_b == NO_DIRECTION) {
+                lines[a][b] = uint64_t{0};
+                continue;
+            }
+
+            Bitboard ray_towards_b = get_ray_map(towards_b)[a];
+
+            Direction towards_a = get_direction(b, a);
+            Bitboard ray_towards_a = get_ray_map(towards_a)[b];
+
+            // Intersect both rays, leaving only squares between the a and b
+            lines[a][b] = (ray_towards_b & ray_towards_a) | get_mask(b); // Include square b
+        }
+    }
+
+    return lines;
+}();

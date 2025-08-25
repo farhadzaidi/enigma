@@ -25,8 +25,6 @@ using Rank              = uint8_t;
 using File              = uint8_t;
 using CastleType        = uint8_t;
 using Direction         = int;
-using AttackMap         = std::array<Bitboard, NUM_SQUARES>;
-using BlockerMap        = std::array<Bitboard, NUM_SQUARES>;
 
 // --- Enums ---
 
@@ -42,6 +40,7 @@ enum SquareEnum : Square {
 };
 
 enum DirectionEnum : Direction {
+    NO_DIRECTION = 0,
     NORTH = 8,
     EAST = 1,
     SOUTH = -NORTH,
