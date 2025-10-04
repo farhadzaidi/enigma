@@ -14,7 +14,7 @@ static inline bool is_attacked_by_slider(const Board &b, Square sq) {
     if (ray_mask) {
         Square first = pop_next<D>(ray_mask);
         Bitboard first_mask = get_mask(first);
-        if ((first_mask & b.colors[b.to_move ^ 1]) && is_relevant_sliding_piece<D>(b, first)) {
+        if ((first_mask & b.colors[b.to_move ^ 1]) && is_relevant_sliding_piece<D>(b.piece_map[first])) {
             return true;
         }
     }

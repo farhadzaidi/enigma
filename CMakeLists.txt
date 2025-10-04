@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Default to Release build (optimized)
+# Default to release build (optimized)
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the build type." FORCE)
 endif()
@@ -24,6 +24,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:
     -O3 -march=native -mtune=native -DNDEBUG
     -ffunction-sections -fdata-sections
+    -g -fno-omit-frame-pointer
   >
   $<$<CXX_COMPILER_ID:MSVC>:
     /O2 /Ob3 /DNDEBUG /GL
@@ -43,7 +44,7 @@ target_link_options(${PROJECT_NAME} PRIVATE
   >
 )
 
-# Interprodcedural Optimization
+# Interprocedural optimization
 include(CheckIPOSupported)
 check_ipo_supported(RESULT ipo_supported OUTPUT ipo_msg)
 if(ipo_supported)

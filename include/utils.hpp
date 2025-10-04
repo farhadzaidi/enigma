@@ -4,12 +4,12 @@
 #include <bit>
 
 #include "types.hpp"
-#include "board.hpp"
-#include <iostream>
 
 #ifdef __BMI2__
 #include <immintrin.h>
 #endif
+
+class Board;
 
 // Parsing
 
@@ -73,16 +73,15 @@ constexpr Square pop_next(Bitboard& b) {
 // Determines if a given piece is the relevant sliding piece based on the direction.
 // For example, it would return true if we find a rook or queen while going in straight directions.
 template <Direction D>
-inline bool is_relevant_sliding_piece(const Board&b, Square sq) {
-    Piece piece = b.piece_map[sq];
+inline bool is_relevant_sliding_piece(Piece piece) {
     if constexpr (D == NORTH || D == SOUTH || D == EAST || D == WEST) {
         return piece == ROOK || piece == QUEEN;
     }
-    
+
     else if constexpr (D == NORTHEAST || D == NORTHWEST || D == SOUTHEAST || D == SOUTHWEST) {
         return piece == BISHOP || piece == QUEEN;
-    } 
-    
+    }
+
     else return false;
 }
 

@@ -66,6 +66,7 @@ void run_bench() {
     std::clog << "Running bench...\n";
     Board b;
     auto lines = collect_lines();
+    uint64_t total_nodes = 0;
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& line : lines) {
@@ -74,6 +75,7 @@ void run_bench() {
         b.reset();
         b.load_from_fen(fen);
         uint64_t nodes = perft(b, depth);
+        total_nodes += nodes;
 
         if (nodes != expected_nodes) {
             std::clog << "\n[FAILURE] FEN: " << fen << "\n";
@@ -81,10 +83,11 @@ void run_bench() {
             return;
         }
     }
-
     auto end = std::chrono::high_resolution_clock::now();
+    
     double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
     std::clog << "[SUCCESS] Bench completed in " << std::fixed << std::setprecision(1) << seconds << " seconds\n";
+    std::clog << "NPS: " << static_cast<uint64_t>(total_nodes / seconds) << "\n";
 }
 
 

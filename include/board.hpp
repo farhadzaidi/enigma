@@ -67,6 +67,5 @@ public:
     void handle_castle(Square castle_square);
     void update_castling_rights(Color color, Piece piece);
     void make_move(Move move);
-
     void unmake_move(Move move);
 };

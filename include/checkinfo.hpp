@@ -44,16 +44,16 @@ static inline void compute_sliding_checks_and_pins(
         Bitboard first_mask = get_mask(first);
 
         if (ray_mask && (first_mask & b.colors[us])) {
-            // First piece is friendly, so we can second to look for pins
+            // First piece is friendly, so we can get second to look for pins
             Square second = pop_next<D>(ray_mask);
             Bitboard second_mask = get_mask(second);
 
-            if ((second_mask & enemy_pieces) && is_relevant_sliding_piece<D>(b, second)) {
+            if ((second_mask & enemy_pieces) && is_relevant_sliding_piece<D>(b.piece_map[second])) {
                 // Second piece is an enemy sliding piece (relevant), so first is pinned
                 checkInfo.pinned |= first_mask;
                 checkInfo.pins[first] = LINES[king_sq][second];
             }
-        } else if ((first_mask & enemy_pieces) && is_relevant_sliding_piece<D>(b, first)){
+        } else if ((first_mask & enemy_pieces) && is_relevant_sliding_piece<D>(b.piece_map[first])){
             // First piece is an enemy sliding piece (relevant), so second is a checker
             checkInfo.checkers |= first_mask;
         }
