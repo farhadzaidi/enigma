@@ -261,7 +261,7 @@ static inline void generate_castling_moves(Board &b, MoveList& moves, CheckInfo&
 template <Color C>
 static inline void _generate_moves(Board& b, MoveList& moves) {
     CheckInfo checkInfo;
-    compute_check_info<C>(b, checkInfo);
+    checkInfo.compute_check_info<C>(b);
 
     if (std::popcount(checkInfo.checkers) == 2) {
         // Double check; only king moves are valid (noncastling)

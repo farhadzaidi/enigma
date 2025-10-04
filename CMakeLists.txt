@@ -24,7 +24,6 @@ target_compile_options(${PROJECT_NAME} PRIVATE
   $<$<CXX_COMPILER_ID:GNU,Clang>:
     -O3 -march=native -mtune=native -DNDEBUG
     -ffunction-sections -fdata-sections
-    -g -fno-omit-frame-pointer
   >
   $<$<CXX_COMPILER_ID:MSVC>:
     /O2 /Ob3 /DNDEBUG /GL
