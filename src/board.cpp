@@ -30,9 +30,7 @@ void Board::reset() {
     en_passant_target = NO_SQUARE;
     halfmoves = 0;
     fullmoves = 0;
-
-    moves = std::stack<Move>();
-    states = std::stack<State>();
+    ply = 0;
 }
 
 void Board::remove_piece(Color color, Piece piece, Square square) {
@@ -215,7 +213,7 @@ void Board::debug() {
         if (input == "quit") {
             break;
         } else if (input == "undo") {
-            unmake_move(moves.top());
+            unmake_move(moves[ply]);
         } else {
             Move move = encode_move_from_uci(*this, input);
             make_move(move);
@@ -347,11 +345,10 @@ void Board::make_move(Move move) {
     // Toggle side to move
     to_move ^= 1;
 
-    // Add the move to the list (stack) of moves in this game
-    moves.push(move);
-
-    // Push state info onto the state stack
-    states.push(state);
+    // Update stacks and increment ply
+    moves[ply] = move;
+    states[ply] = state;
+    ply += 1;
 }
 
 void Board::unmake_move(Move move) {
@@ -364,8 +361,11 @@ void Board::unmake_move(Move move) {
     // currently set to move
     Color moving_color = to_move ^ 1;
 
+    // Decrement ply (simulate popping from top of moves and states stacks)
+    ply -= 1;
+
     // Restore state
-    const State& prev_state = states.top();
+    const State& prev_state = states[ply];
     en_passant_target = prev_state.en_passant_target;
     castling_rights = prev_state.castling_rights;
     halfmoves = prev_state.halfmoves;
@@ -428,8 +428,4 @@ void Board::unmake_move(Move move) {
 
     // Toggle side to move
     to_move ^= 1;
-
-    // Pop from stacks
-    states.pop();
-    moves.pop();
 }

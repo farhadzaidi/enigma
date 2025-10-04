@@ -11,6 +11,14 @@ constexpr int NUM_COLORS     = 2;
 constexpr int NUM_PIECES     = 6;
 constexpr int BOARD_SIZE     = 8;
 
+// --- Bounds ---
+
+// Upper bound for the maximum depth (ply) we can search in a given position
+constexpr int MAX_PLY   = 256;
+
+// Upper bound for the maximum number of moves we can generate at a given depth
+constexpr int MAX_MOVES = 256;
+
 // --- Type Definitions ---
 
 using Bitboard          = uint64_t;
@@ -154,7 +162,7 @@ constexpr Bitboard BLACK_SHORT_CASTLE_PATH  = 0x6000000000000000ULL;
 
 // --- Sentinel Values ---
 
-constexpr Bitboard EMPTY_BITBOARD            =  0;
+constexpr Bitboard EMPTY_BITBOARD =  0;
 
 // --- FEN Strings ---
 

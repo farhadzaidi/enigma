@@ -283,7 +283,7 @@ static inline void _generate_moves(Board& b, std::vector<Move>& moves) {
 
 std::vector<Move> generate_moves(Board &b) {
     std::vector<Move> moves;
-    moves.reserve(256);
+    moves.reserve(MAX_MOVES);
 
     if (b.to_move == WHITE) _generate_moves<WHITE>(b, moves);
     else                    _generate_moves<BLACK>(b, moves);

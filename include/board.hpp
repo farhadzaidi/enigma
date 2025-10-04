@@ -19,6 +19,12 @@ struct State {
     uint8_t halfmoves; // Truncating from int to U8 to save space
     Piece captured_piece;
 
+    State() :
+        en_passant_target(NO_SQUARE),
+        castling_rights(NO_CASTLING_RIGHTS),
+        halfmoves(0),
+        captured_piece(NO_PIECE) {}
+
     State(Square ep, CastlingRights cr, uint8_t hm, Piece cp) :
         en_passant_target(ep),
         castling_rights(cr),
@@ -44,11 +50,11 @@ public:
     int halfmoves;
     int fullmoves;
 
-    // Stack of moves - useful for undoing moves
-    std::stack<Move> moves;
-
-    // Stack for tracking irreversible board state
-    std::stack<State> states;
+    // These stacks are implemented as arrays using ply as a pointer to the top
+    // They are useful for undoing moves
+    int ply;
+    std::array<Move, MAX_PLY> moves; // Keeps track of made moves
+    std::array<State, MAX_PLY> states; // Keeps track of irreversible board state
 
     Board();
     void reset();
