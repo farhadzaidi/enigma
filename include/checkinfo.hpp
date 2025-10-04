@@ -103,8 +103,7 @@ static inline Bitboard compute_attack_mask(Board& b) {
 
 // Main function that calls helpers to compute CheckInfo
 template <Color C>
-inline CheckInfo compute_check_info(Board& b) {
-    CheckInfo checkInfo;
+inline void compute_check_info(Board& b, CheckInfo& checkInfo) {
     constexpr Color us = C;
     constexpr Color them = C ^ 1;
     Square king_sq = b.king_squares[us];
@@ -147,6 +146,4 @@ inline CheckInfo compute_check_info(Board& b) {
             ? LINES[king_sq][checker_sq]
             : checkInfo.checkers;
     }
-
-    return checkInfo;
 }
