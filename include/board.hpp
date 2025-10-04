@@ -65,7 +65,8 @@ public:
     void set_en_passant_target(Color color, Piece piece, Square from, Square to);
     Piece handle_capture(Square capture_square, Color moving_color, MoveFlag mflag);
     void handle_castle(Square castle_square);
-    void update_castling_rights(Color color, Piece piece);
+    // void update_castling_rights(Color color, Piece piece);
+    void update_castling_rights(Square from, Square to);
     void make_move(Move move);
     void unmake_move(Move move);
 };

@@ -13,6 +13,20 @@
 using AttackMap         = std::array<Bitboard, NUM_SQUARES>;
 using BlockerMap        = std::array<Bitboard, NUM_SQUARES>;
 
+// We can precompute castling rights updates to make it much faster during make move.
+// This lookup table keeps track of which castling rights are lost when a piece
+// moves from or to that square. 
+constexpr auto castling_rights_updates = []() {
+    std::array<CastlingRights, NUM_SQUARES> castling_rights_updates = {NO_CASTLING_RIGHTS};
+    castling_rights_updates[E1] = WHITE_SHORT | WHITE_LONG;
+    castling_rights_updates[H1] = WHITE_SHORT;
+    castling_rights_updates[A1] = WHITE_LONG;
+    castling_rights_updates[E8] = BLACK_SHORT | BLACK_LONG;
+    castling_rights_updates[H8] = BLACK_SHORT;
+    castling_rights_updates[A8] = BLACK_LONG;
+    return castling_rights_updates;
+}();
+
 // NON-SLIDING PIECES
 
 // Straightforward attack map generation: from each square, we just try going

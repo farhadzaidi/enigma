@@ -37,6 +37,7 @@ enum SquareEnum : Square {
     A6, B6, C6, D6, E6, F6, G6, H6,
     A7, B7, C7, D7, E7, F7, G7, H7,
     A8, B8, C8, D8, E8, F8, G8, H8,
+    NO_SQUARE
 };
 
 enum DirectionEnum : Direction {
@@ -94,10 +95,11 @@ enum PieceEnum : Piece {
 };
 
 enum CastlingRightsEnum : CastlingRights {
-    WHITE_SHORT = 0b1,
-    WHITE_LONG  = 0b10,
-    BLACK_SHORT = 0b100,
-    BLACK_LONG  = 0b1000
+    NO_CASTLING_RIGHTS = 0b0,
+    WHITE_SHORT        = 0b1,
+    WHITE_LONG         = 0b10,
+    BLACK_SHORT        = 0b100,
+    BLACK_LONG         = 0b1000
 };
 
 enum MoveTypeEnum : MoveType {
@@ -152,8 +154,6 @@ constexpr Bitboard BLACK_SHORT_CASTLE_PATH  = 0x6000000000000000ULL;
 
 // --- Sentinel Values ---
 
-constexpr Square NO_SQUARE                   = -1;
-constexpr CastlingRights NO_CASTLING_RIGHTS  =  0;
 constexpr Bitboard EMPTY_BITBOARD            =  0;
 
 // --- FEN Strings ---

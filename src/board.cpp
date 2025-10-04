@@ -10,6 +10,7 @@
 #include "types.hpp"
 #include "utils.hpp"
 #include "move.hpp"
+#include "precompute.hpp"
 
 Board::Board() {
     reset();
@@ -286,45 +287,10 @@ void Board::handle_castle(Square castle_square) {
     }
 }
 
-void Board::update_castling_rights(Color color, Piece piece) {
-    // Castling rights checks:
-    // If the king moves --> revoke all castling rights for that color
-    // If any corner rook is not in its starting position --> revoke castling
-    // rights for that color and side
-
-    if (piece == KING && color == WHITE) {
-        castling_rights &= ~WHITE_SHORT;
-        castling_rights &= ~WHITE_LONG;
-    }
-
-    if (piece == KING && color == BLACK) {
-        castling_rights &= ~BLACK_SHORT;
-        castling_rights &= ~BLACK_LONG;
-    }
-
-    // King-side rook
-    bool white_king_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(H1)) == 0;
-    if (white_king_side_rook_moved) {
-        castling_rights &= ~WHITE_SHORT;
-    }
-
-    // Queen-side rook
-    bool white_queen_side_rook_moved = (pieces[WHITE][ROOK] & get_mask(A1)) == 0;
-    if (white_queen_side_rook_moved) {
-        castling_rights &= ~WHITE_LONG;
-    }
-
-    // King-side rook
-    bool black_king_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(H8)) == 0;
-    if (black_king_side_rook_moved) {
-        castling_rights &= ~BLACK_SHORT;
-    }
-
-    // Queen-side rook
-    bool black_queen_side_rook_moved = (pieces[BLACK][ROOK] & get_mask(A8)) == 0;
-    if (black_queen_side_rook_moved) {
-        castling_rights &= ~BLACK_LONG;
-    }
+void Board::update_castling_rights(Square from, Square to) {
+    // Use precomputed lookup table to update castling rights
+    castling_rights &= ~castling_rights_updates[from];
+    castling_rights &= ~castling_rights_updates[to];
 }
 
 void Board::make_move(Move move) {
@@ -375,7 +341,8 @@ void Board::make_move(Move move) {
     if (mflag == CASTLE) {
         handle_castle(to);
     }
-    update_castling_rights(moving_color, moving_piece);
+
+    update_castling_rights(from, to);
 
     // Toggle side to move
     to_move ^= 1;
