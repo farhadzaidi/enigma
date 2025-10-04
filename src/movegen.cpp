@@ -1,5 +1,3 @@
-#include <vector>
-
 #include "movegen.hpp"
 #include "types.hpp"
 #include "utils.hpp"
@@ -51,7 +49,7 @@ static inline Bitboard generate_sliding_attack_mask(const Board& b, Square from)
 }
 
 template <Piece P>
-static inline void generate_piece_moves(Board& b, std::vector<Move>& moves, CheckInfo& checkInfo) {
+static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& checkInfo) {
     Bitboard piece_bb = b.pieces[b.to_move][P];
     Bitboard not_friendly = ~b.colors[b.to_move];
 
@@ -92,7 +90,7 @@ static inline void generate_piece_moves(Board& b, std::vector<Move>& moves, Chec
                 }
             }
 
-            moves.push_back(encode_move(from, to, mtype, NORMAL));
+            moves.add_move(encode_move(from, to, mtype, NORMAL));
         }
     }
 }
@@ -100,7 +98,7 @@ static inline void generate_piece_moves(Board& b, std::vector<Move>& moves, Chec
 template <Color C, Direction D, MoveType MT, bool IS_PROMOTION = false, bool IS_EN_PASSANT = false>
 static inline void encode_pawn_moves(
     Board &b,
-    std::vector<Move>& moves,
+    MoveList& moves,
     CheckInfo& checkInfo,
     Bitboard move_mask
 ) {
@@ -117,10 +115,10 @@ static inline void encode_pawn_moves(
 
         if constexpr (IS_PROMOTION) {
 
-            moves.push_back(encode_move(from, to, MT, PROMOTION_QUEEN));
-            moves.push_back(encode_move(from, to, MT, PROMOTION_ROOK));
-            moves.push_back(encode_move(from, to, MT, PROMOTION_BISHOP));
-            moves.push_back(encode_move(from, to, MT, PROMOTION_KNIGHT));
+            moves.add_move(encode_move(from, to, MT, PROMOTION_QUEEN));
+            moves.add_move(encode_move(from, to, MT, PROMOTION_ROOK));
+            moves.add_move(encode_move(from, to, MT, PROMOTION_BISHOP));
+            moves.add_move(encode_move(from, to, MT, PROMOTION_KNIGHT));
         } else {
             if constexpr (IS_EN_PASSANT) {
                 // Handle en passant edge cases
@@ -153,16 +151,16 @@ static inline void encode_pawn_moves(
                 b.occupied ^= from_mask;
 
                 if (is_attacked) return;
-                moves.push_back(encode_move(from, to, MT, EN_PASSANT));
+                moves.add_move(encode_move(from, to, MT, EN_PASSANT));
             } else {
-                moves.push_back(encode_move(from, to, MT, NORMAL));
+                moves.add_move(encode_move(from, to, MT, NORMAL));
             }
         }
     }
 }
 
 template<Color C>
-static inline void generate_pawn_moves(Board& b, std::vector<Move>& moves, CheckInfo& checkInfo) {
+static inline void generate_pawn_moves(Board& b, MoveList& moves, CheckInfo& checkInfo) {
     // Compile-time constants derived from template
     constexpr Direction FWD              = C == WHITE ? NORTH : SOUTH;
     constexpr Direction FWD_FWD          = C == WHITE ? NORTH_NORTH : SOUTH_SOUTH;
@@ -219,7 +217,7 @@ static inline void generate_pawn_moves(Board& b, std::vector<Move>& moves, Check
 }
 
 template <Color C>
-static inline void generate_castling_moves(Board &b, std::vector<Move>& moves, CheckInfo& checkInfo) {
+static inline void generate_castling_moves(Board &b, MoveList& moves, CheckInfo& checkInfo) {
     constexpr auto SHORT_CASTLING_RIGHTS = C == WHITE ? WHITE_SHORT : BLACK_SHORT;
     constexpr auto LONG_CASTLING_RIGHTS  = C == WHITE ? WHITE_LONG : BLACK_LONG;
     constexpr auto SHORT_CASTLE_PATH     = C == WHITE ? WHITE_SHORT_CASTLE_PATH : BLACK_SHORT_CASTLE_PATH;
@@ -247,7 +245,7 @@ static inline void generate_castling_moves(Board &b, std::vector<Move>& moves, C
         && ((b.occupied & SHORT_CASTLE_PATH) == 0)  // Path is clear
         && ((king_short_castle_path & checkInfo.unsafe) == 0) // King doesn't pass thru check
     ) {
-        moves.push_back(encode_move(KING_SQUARE, SHORT_TO, QUIET, CASTLE));
+        moves.add_move(encode_move(KING_SQUARE, SHORT_TO, QUIET, CASTLE));
     } 
     
     // Long castle
@@ -256,12 +254,12 @@ static inline void generate_castling_moves(Board &b, std::vector<Move>& moves, C
         && ((b.occupied & LONG_CASTLE_PATH) == 0)
         && ((king_long_castle_path & checkInfo.unsafe) == 0)
     ) {
-        moves.push_back(encode_move(KING_SQUARE, LONG_TO, QUIET, CASTLE));
+        moves.add_move(encode_move(KING_SQUARE, LONG_TO, QUIET, CASTLE));
     }
 }
 
 template <Color C>
-static inline void _generate_moves(Board& b, std::vector<Move>& moves) {
+static inline void _generate_moves(Board& b, MoveList& moves) {
     CheckInfo checkInfo;
     checkInfo = compute_check_info<C>(b);
 
@@ -281,9 +279,8 @@ static inline void _generate_moves(Board& b, std::vector<Move>& moves) {
     generate_piece_moves<KING>  (b, moves, checkInfo);
 }
 
-std::vector<Move> generate_moves(Board &b) {
-    std::vector<Move> moves;
-    moves.reserve(MAX_MOVES);
+MoveList generate_moves(Board &b) {
+    MoveList moves;
 
     if (b.to_move == WHITE) _generate_moves<WHITE>(b, moves);
     else                    _generate_moves<BLACK>(b, moves);

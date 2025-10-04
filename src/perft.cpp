@@ -1,4 +1,3 @@
-#include <vector>
 #include <iostream>
 
 #include "perft.hpp"
@@ -13,7 +12,7 @@ uint64_t perft(Board &b, int depth) {
     }
 
     uint64_t nodes = 0;
-    std::vector<Move> moves = generate_moves(b);
+    MoveList moves = generate_moves(b);
     for (Move move: moves) {
         b.make_move(move);
         nodes += perft(b, depth - 1);
