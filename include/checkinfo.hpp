@@ -14,7 +14,7 @@ Bitboard generate_sliding_attack_mask(const Board& b, Square from);
 // Useful for determining legal moves efficienctly
 struct CheckInfo {
     Bitboard pinned = 0ULL;
-    std::array<Bitboard, NUM_SQUARES> pins{};
+    std::array<Bitboard, NUM_SQUARES> pins;
     Bitboard checkers = 0ULL;
     Bitboard must_cover = ~0ULL; // By default, there is no square that must be covered
     Bitboard unsafe = 0ULL;
@@ -89,7 +89,7 @@ private:
             Square first = pop_next<D>(ray_mask);
             Bitboard first_mask = get_mask(first);
 
-            if (ray_mask && (first_mask & b.colors[us])) {
+            if (first_mask & b.colors[us]) {
                 // First piece is friendly, so we can get second to look for pins
                 Square second = pop_next<D>(ray_mask);
                 Bitboard second_mask = get_mask(second);
