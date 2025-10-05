@@ -1,12 +1,23 @@
 #include <cstdlib>
 #include <string>
+#include <cctype>
 
 #include "utils.hpp"
 #include "types.hpp"
 #include "move.hpp"
 #include "board.hpp"
 
-#include <iostream>
+bool is_pos_int(const std::string& s) {
+    if (s.empty()) return false;
+
+    for (char c : s) {
+        if (!std::isdigit(static_cast<unsigned char>(c))) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 Square uci_to_index(const std::string& square) {
     // Subtracting by '1' gives us the 0-indexed rank

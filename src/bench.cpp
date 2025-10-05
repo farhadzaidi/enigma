@@ -75,7 +75,7 @@ void run_bench() {
 
         b.reset();
         b.load_from_fen(fen);
-        uint64_t nodes = perft(b, depth);
+        uint64_t nodes = perft<false>(b, depth);
         total_nodes += nodes;
 
         if (nodes != expected_nodes) {

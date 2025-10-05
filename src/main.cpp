@@ -9,6 +9,7 @@
 #include "board.hpp"
 #include "perft.hpp"
 #include "types.hpp"
+#include "utils.hpp"
 
 int main(int argc, char* argv[]) {
     std::vector<std::string> args;
@@ -22,10 +23,23 @@ int main(int argc, char* argv[]) {
         if (args[0] == "bench") {
             run_bench();
         } else if (args[0] == "perft") {
+            // Require depth
+            if (args.size() == 1) {
+                std::clog << "Error: Please specify perft depth\n";
+                return EXIT_FAILURE;
+            }
+
+            // Validate depth
+            std::string depth_str = args[1];
+            if (!is_pos_int(depth_str)) {
+                std::clog << "Error: Invalid depth\n";
+            }
+            int depth = std::stoi(depth_str);
+
+            // Load start position on board and perform perft
             Board b;
-            b.load_from_fen(START_POS_FEN);
-            uint64_t nodes = perft(b, 6);
-            std::clog << "Nodes: " << nodes << "\n";
+            b.load_from_fen();
+            perft<true>(b, depth);
             return EXIT_SUCCESS;
         } else {
             std::clog << "Error: Unknown argument " << "'" << args[0] << "'\n";

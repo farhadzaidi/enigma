@@ -18,6 +18,7 @@ constexpr Square get_square(int rank, int file) { return rank * BOARD_SIZE + fil
 constexpr int get_rank(Square square) { return square / BOARD_SIZE; }
 constexpr int get_file(Square square) { return square % BOARD_SIZE; }
 
+bool is_pos_int(const std::string& s);
 Square uci_to_index(const std::string& square);
 std::string index_to_uci(Square square);
 Move encode_move_from_uci(const Board& b, const std::string& uci_move);
