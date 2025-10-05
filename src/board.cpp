@@ -295,10 +295,10 @@ void Board::make_move(Move move) {
     // Preserve irreversible board state before making the move
     State state(en_passant_target, castling_rights, halfmoves, NO_PIECE);
 
-    Square from     = get_from(move);
-    Square to       = get_to(move);
-    MoveType mtype  = get_mtype(move);
-    MoveFlag mflag  = get_mflag(move);
+    Square from     = move.from();
+    Square to       = move.to();
+    MoveType mtype  = move.type();
+    MoveFlag mflag  = move.flag();
 
     int moving_piece = piece_map[from];
     int moving_color = to_move;
@@ -352,10 +352,10 @@ void Board::make_move(Move move) {
 }
 
 void Board::unmake_move(Move move) {
-    Square from     = get_from(move);
-    Square to       = get_to(move);
-    MoveType mtype  = get_mtype(move);
-    MoveFlag mflag  = get_mflag(move);
+    Square from     = move.from();
+    Square to       = move.to();
+    MoveType mtype  = move.type();
+    MoveFlag mflag  = move.flag();
 
     // The color that moved on this move is the opposite of the color that is
     // currently set to move
@@ -382,7 +382,7 @@ void Board::unmake_move(Move move) {
 
     // In the case of a promotion, we change the moving piece to pawn so we place
     // the correct piece back on "from"
-    if (is_promotion(mflag)) {
+    if (move.is_promotion()) {
         moving_piece = PAWN;
     }
 

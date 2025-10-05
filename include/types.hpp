@@ -22,7 +22,6 @@ constexpr int MAX_MOVES = 256;
 // --- Type Definitions ---
 
 using Bitboard          = uint64_t;
-using Move              = uint16_t;
 using MoveType          = uint16_t;
 using MoveFlag          = uint16_t;
 using Square            = uint8_t;
@@ -162,7 +161,8 @@ constexpr Bitboard BLACK_SHORT_CASTLE_PATH  = 0x6000000000000000ULL;
 
 // --- Sentinel Values ---
 
-constexpr Bitboard EMPTY_BITBOARD =  0;
+constexpr Bitboard EMPTY_BITBOARD = 0;
+constexpr uint16_t NULL_MOVE      = 0;
 
 // --- FEN Strings ---
 

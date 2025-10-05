@@ -11,6 +11,7 @@
 #include "bench.hpp"
 #include "board.hpp"
 #include "perft.hpp"
+#include "move.hpp"
 
 // This is really just to silence the IDE warning since PROJECT_ROOT
 // should be defined in CMakeLists.txt

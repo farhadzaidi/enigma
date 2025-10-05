@@ -4,6 +4,7 @@
 #include <bit>
 
 #include "types.hpp"
+#include "move.hpp"
 
 #ifdef __BMI2__
 #include <immintrin.h>

@@ -4,6 +4,7 @@
 #include <stack>
 
 #include "types.hpp"
+#include "move.hpp"
 
 // Type definitions for board representation
 using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;

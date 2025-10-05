@@ -80,15 +80,15 @@ Move encode_move_from_uci(const Board& b, const std::string& uci_move) {
     }
 
     // Encode the move and return
-    return encode_move(from, to, mtype, mflag);
+    return Move(from, to, mtype, mflag);
 }
 
 std::string decode_move_to_uci(Move move) {
-    std::string from = index_to_uci(get_from(move));
-    std::string to = index_to_uci(get_to(move));
+    std::string from = index_to_uci(move.from());
+    std::string to = index_to_uci(move.to());
 
     std::string promotion = "";
-    switch(get_mflag(move)) {
+    switch(move.flag()) {
         case PROMOTION_BISHOP:
             promotion = "b";
             break;
