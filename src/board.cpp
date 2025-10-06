@@ -65,11 +65,11 @@ Color Board::get_color(Square square) const {
 
 void Board::load_from_fen(const std::string& fen) {
     std::vector<std::string> parts;
-    std::stringstream ss(fen);
+    std::istringstream iss(fen);
     std::string item;
 
     // Split the fen string using a space as the delimiter
-    while(std::getline(ss, item, ' ')) {
+    while(std::getline(iss, item, ' ')) {
         // Skip empty strings caused by multiple spaces
         if (!item.empty()) {
             parts.push_back(item);

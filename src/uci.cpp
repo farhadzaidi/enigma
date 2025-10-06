@@ -1,35 +1,118 @@
 #include <iostream>
 #include <string>
+#include <sstream>
+#include <thread>
+#include <atomic>
+#include <chrono>
 
-static void uci_print(const std::string& str) {
+#include "types.hpp"
+#include "board.hpp"
+#include "search.hpp"
+#include "utils.hpp"
+#include "move.hpp"
+
+std::thread search_thread;
+std::atomic<bool> stop_requested(false);
+
+// Calculates how much time to spend on the search in milliseconds
+static int calc_time_limit(int remaining, int increment) {
+    return remaining / 20 + increment / 2;
+}
+
+static void print(const std::string& str) {
     std::cout << str << "\n";
     std::cout.flush();
 }
 
 static void cmd_uci() {
-    uci_print("id name Engima");
-    uci_print("id author Syed Zaidi");
-    uci_print("uci_ok");
+    print("id name Engima");
+    print("id author Syed Zaidi");
+    print("uciok");
 }
 
-static void cmd_setoption(const std::string& str) {
+static void cmd_setoption(const std::string& cmd) {
     // TODO
 }
 
 static void cmd_isready() {
-    uci_print("readyok");
+    print("readyok");
 }
 
-static void cmd_ucinewgame() {
-    // TODO (clear game state)
+static void cmd_ucinewgame(Board& b) {
+    b.reset();
 }
 
-static void cmd_position(const std::string& str) {
-    
+static void cmd_position(const std::string& cmd, Board& b) {
+    std::istringstream iss(cmd);
+    std::string token;
+    iss >> token >> token; // Discard "position" token and read next
+
+    // Load from standard start position
+    if (token == "startpos") {
+        b.load_from_fen();
+        iss >> token;
+    } else if (token == "fen") {
+        // Load from provided FEN
+        // Read FEN until the token is "moves" or we reach the end of the command
+        std::string fen;
+        while (iss >> token && token != "moves") {
+            fen += token + " ";
+        }
+        b.load_from_fen(fen);
+    }
+
+    // Make moves on the board if they are provided
+    if (token == "moves") {
+        while (iss >> token) {
+            Move move = encode_move_from_uci(b, token);
+            b.make_move(move);
+        }
+    }
 }
 
-static void cmd_go() {
-    // TODO
+static void cmd_go(std::string& cmd, Board& b) {
+    // Parse go command
+    int wtime = -1, btime = -1, winc = 0, binc = 0;
+    std::istringstream iss(cmd);
+    std::string token;
+
+    // TODO: implement remaining go options
+    iss >> token;
+    while (iss >> token) {
+        if (token == "wtime") {
+            iss >> wtime;
+        } else if (token == "btime") {
+            iss >> btime;
+        } else if (token == "winc") {
+            iss >> winc;
+        } else if (token == "binc") {
+            iss >> binc;
+        }
+    }
+
+    // Default time limit on search in milliseconds
+    int time_limit = 50;
+
+    // Determine how long to search for
+    if (b.to_move == WHITE && wtime != -1) {
+        time_limit = calc_time_limit(wtime, winc);
+    } else if (b.to_move == BLACK && btime != -1) {
+        time_limit = calc_time_limit(btime, binc);
+    }
+
+    // Clean up dangling thread if needed
+    stop_requested = true;
+    if (search_thread.joinable()) {
+        search_thread.join();
+    }
+
+    // Create new search thread and start the search
+    stop_requested = false;
+    search_thread = std::thread([&]() {
+        Move best_move = search(b, time_limit);
+        std::string best_move_uci = decode_move_to_uci(best_move);
+        print("bestmove " + best_move_uci);
+    });
 }
 
 static void cmd_debug() {
@@ -45,11 +128,17 @@ static void cmd_ponderhit() {
 }
 
 static void cmd_stop() {
-    // TODO
+    stop_requested = true;
+    if (search_thread.joinable()) {
+        search_thread.join();
+    }
 }
 
 static void cmd_quit() {
-    // TODO
+    stop_requested = true;
+    if (search_thread.joinable()) {
+        search_thread.join();
+    }
 }
 
 void uci_loop() {
@@ -58,6 +147,9 @@ void uci_loop() {
 
     // Untie cin from cout to prevent automatic flushing (will be manually controlled)
     std::cin.tie(nullptr);
+
+    // Create board object
+    Board b;
 
     std::string cmd;
     while (std::getline(std::cin, cmd)) {
@@ -68,11 +160,11 @@ void uci_loop() {
         } else if (cmd == "isready") {
             cmd_isready();
         } else if (cmd == "ucinewgame") {
-            cmd_ucinewgame();
+            cmd_ucinewgame(b);
         } else if (cmd.starts_with("position")) {
-            cmd_position(cmd);
+            cmd_position(cmd, b);
         } else if (cmd.starts_with("go")) {
-            cmd_go();
+            cmd_go(cmd, b);
         } else if (cmd == "debug") {
             cmd_debug();
         } else if (cmd == "register") {
@@ -83,7 +175,9 @@ void uci_loop() {
             cmd_stop();
         } else if (cmd == "quit") {
             cmd_quit();
+            break;
+        } else {
+            print("Unknown command: '" + cmd + "'");
         }
     }
-
 }
