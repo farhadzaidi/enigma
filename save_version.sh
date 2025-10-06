@@ -1,3 +1,6 @@
+# Copies current binary over to the versions folder with the provided name
+# Usage: bash save_version.sh <name>
+
 name=$1
 
 if [ -z "$name" ]; then
