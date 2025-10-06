@@ -14,6 +14,17 @@
 std::thread search_thread;
 std::atomic<bool> stop_requested(false);
 
+// Stops the search and joins the thread to prevent any dangling threads/race conditions
+static void clean_up_thread() {
+    stop_requested = true;
+
+    if (search_thread.joinable()) {
+        search_thread.join();
+    }
+
+    stop_requested = false;
+}
+
 // Calculates how much time to spend on the search in milliseconds
 static int calc_time_limit(int remaining, int increment) {
     return remaining / 20 + increment / 2;
@@ -46,6 +57,9 @@ static void cmd_position(const std::string& cmd, Board& b) {
     std::istringstream iss(cmd);
     std::string token;
     iss >> token >> token; // Discard "position" token and read next
+
+    // Reset the board before loading from FEN
+    b.reset();
 
     // Load from standard start position
     if (token == "startpos") {
@@ -100,14 +114,8 @@ static void cmd_go(std::string& cmd, Board& b) {
         time_limit = calc_time_limit(btime, binc);
     }
 
-    // Clean up dangling thread if needed
-    stop_requested = true;
-    if (search_thread.joinable()) {
-        search_thread.join();
-    }
-
     // Create new search thread and start the search
-    stop_requested = false;
+    clean_up_thread();
     search_thread = std::thread([&]() {
         Move best_move = search(b, time_limit);
         std::string best_move_uci = decode_move_to_uci(best_move);
@@ -128,17 +136,11 @@ static void cmd_ponderhit() {
 }
 
 static void cmd_stop() {
-    stop_requested = true;
-    if (search_thread.joinable()) {
-        search_thread.join();
-    }
+    clean_up_thread();
 }
 
 static void cmd_quit() {
-    stop_requested = true;
-    if (search_thread.joinable()) {
-        search_thread.join();
-    }
+    clean_up_thread();
 }
 
 void uci_loop() {
