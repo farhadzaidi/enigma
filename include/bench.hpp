@@ -1,3 +1,3 @@
 #pragma once
 
-void run_bench();
+void run_bench(bool verbose, bool fast);

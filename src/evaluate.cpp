@@ -2,8 +2,6 @@
 #include "evaluate.hpp"
 
 int evaluate(Board& b) {
-    // TODO: handle checkmate and stalemate
-
     // TODO: keep track of material incrementally
     int white_material = 0;
     int black_material = 0;

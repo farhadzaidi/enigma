@@ -1,14 +1,17 @@
 #pragma once
 
+#include <vector>
 #include <string>
 #include <bit>
-
-#include "types.hpp"
-#include "move.hpp"
+#include <filesystem>
+#include <fstream>
 
 #ifdef __BMI2__
 #include <immintrin.h>
 #endif
+
+#include "types.hpp"
+#include "move.hpp"
 
 class Board;
 
@@ -23,6 +26,11 @@ Square uci_to_index(const std::string& square);
 std::string index_to_uci(Square square);
 Move encode_move_from_uci(const Board& b, const std::string& uci_move);
 std::string decode_move_to_uci(Move move);
+
+// File Utilites
+
+void read_file(std::vector<std::string>& buffer, std::filesystem::path file_path, int max_lines = -1);
+std::tuple<std::string, int, uint64_t> parse_epd_line(std::string line);
 
 // Bitboards
 

@@ -167,7 +167,7 @@ void uci_loop() {
             cmd_position(cmd, b);
         } else if (cmd.starts_with("go")) {
             cmd_go(cmd, b);
-        } else if (cmd == "debug") {
+        } else if (cmd.starts_with("debug")) {
             cmd_debug();
         } else if (cmd == "register") {
             cmd_register();

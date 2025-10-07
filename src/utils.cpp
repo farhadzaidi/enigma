@@ -1,6 +1,7 @@
-#include <cstdlib>
 #include <string>
 #include <cctype>
+#include <iostream>
+#include <sstream>
 
 #include "utils.hpp"
 #include "types.hpp"
@@ -115,4 +116,42 @@ std::string decode_move_to_uci(Move move) {
     }
 
     return from + to + promotion;
+}
+
+void read_file(std::vector<std::string>& buffer, std::filesystem::path file_path, int max_lines) {
+    std::ifstream file(file_path);
+    if (!file) {
+        std::cerr << "Failed to open: " << file_path << "\n";
+    }
+
+    int count = 0;
+    std::string line;
+    while (std::getline(file, line)) {
+        count++;
+        buffer.push_back(line);
+        if (max_lines != -1 && count >= max_lines) {
+            break;
+        }
+    }
+
+    file.close();
+}
+
+// Parses a line in the form [FEN]; D[DEPTH] [NODES]
+// e.g. 3r2k1/5B2/p7/8/1qr3Q1/4R3/1PP4P/2K5 b - -  0 1; D4 222062
+std::tuple<std::string, int, uint64_t> parse_epd_line(std::string line) {
+    auto pos = line.find(";");
+    std::string fen = line.substr(0, pos);
+    std::string rest = line.substr(pos + 1);
+
+    std::istringstream iss(rest);
+
+    std::string depth_str;
+    iss >> depth_str;
+    int depth = std::stoi(depth_str.substr(1));
+
+    uint64_t nodes;
+    iss >> nodes;
+
+    return {fen, depth, nodes};
 }

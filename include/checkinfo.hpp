@@ -8,10 +8,6 @@
 #include "board.hpp"
 #include "precompute.hpp"
 
-// Forward declaration
-template <Piece P>
-Bitboard generate_sliding_attack_mask(const Board& b, Square from);
-
 // Computed at the start of move generation at every node
 // Useful for determining legal moves efficienctly
 struct CheckInfo {

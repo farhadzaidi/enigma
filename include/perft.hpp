@@ -8,7 +8,7 @@
 #include "movegen.hpp"
 
 template<bool Root>
-uint64_t perft(Board &b, int depth) {
+inline uint64_t perft(Board &b, int depth) {
     uint64_t nodes = 0;
     uint64_t total_nodes = 0;
     MoveList moves = generate_moves(b);

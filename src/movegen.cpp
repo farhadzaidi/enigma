@@ -34,21 +34,6 @@ static inline bool is_attacked_by_slider(const Board &b, Square sq) {
 }
 
 template <Piece P>
-static inline Bitboard generate_sliding_attack_mask(const Board& b, Square from) {
-    // Assign constants based on sliding piece type
-    constexpr auto& attack_table = P == BISHOP ? BISHOP_ATTACK_TABLE : ROOK_ATTACK_TABLE; 
-    constexpr auto& blocker_map  = P == BISHOP ? BISHOP_BLOCKER_MAP : ROOK_BLOCKER_MAP;
-    constexpr auto& magic        = P == BISHOP ? BISHOP_MAGIC : ROOK_MAGIC;
-    constexpr auto& offset       = P == BISHOP ? BISHOP_OFFSET : ROOK_OFFSET;
-        
-    // Look up sliding piece attacks from attack table based on blocker pattern
-    Bitboard blocker_mask = blocker_map[from];
-    Bitboard blockers = b.occupied & blocker_mask;
-    size_t index = get_attack_table_index(blockers, blocker_mask, magic[from]);
-    return attack_table[offset[from] + index];
-}
-
-template <Piece P>
 static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& checkInfo) {
     Bitboard piece_bb = b.pieces[b.to_move][P];
     Bitboard not_friendly = ~b.colors[b.to_move];

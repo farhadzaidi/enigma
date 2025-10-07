@@ -3,14 +3,12 @@
 #include <iostream>
 #include <string>
 #include <array>
-#include <stack>
-#include <vector>
 
 #include "board.hpp"
 #include "types.hpp"
-#include "utils.hpp"
 #include "move.hpp"
-#include "precompute.hpp"
+#include "utils.hpp"
+#include "movegen.hpp"
 
 Board::Board() {
     reset();
@@ -31,36 +29,6 @@ void Board::reset() {
     halfmoves = 0;
     fullmoves = 0;
     ply = 0;
-}
-
-void Board::remove_piece(Color color, Piece piece, Square square) {
-    // Create a mask based on the square of the piece and use bitwise AND to
-    // remove the piece from each respective bitboard
-    Bitboard mask = ~get_mask(square);
-    pieces[color][piece] &= mask;
-    colors[color] &= mask;
-    occupied &= mask;
-
-    piece_map[square] = NO_PIECE;
-    // No need to clear king square here as it will be updated in place_piece
-}
-
-void Board::place_piece(Color color, Piece piece, Square square) {
-    // Create a mask based on the square of the piece and use bitwise OR to
-    // place the piece on each respective bitboard
-    Bitboard mask = get_mask(square);
-    pieces[color][piece] |= mask;
-    colors[color] |= mask;
-    occupied |= mask;
-
-    piece_map[square] = piece;
-    if (piece == KING) {
-        king_squares[color] = square;
-    }
-}
-
-Color Board::get_color(Square square) const {
-    return (colors[BLACK] >> square) & uint64_t{1};
 }
 
 void Board::load_from_fen(const std::string& fen) {
@@ -163,7 +131,6 @@ void Board::load_from_fen(const std::string& fen) {
     this->fullmoves = std::stoi(fullmoves);
 }
 
-
 void Board::print_board() const {
     std::string EMPTY_SYMBOL = ".";
     std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{ // yuck...
@@ -219,76 +186,6 @@ void Board::debug() {
             make_move(move);
         }
     }
-}
-
-void Board::set_en_passant_target(Color color, Piece piece, Square from, Square to) {
-    // White moves a pawn 2 squares north
-    if (
-        color == WHITE
-        && piece == PAWN
-        && get_rank(from) == RANK_2
-        && get_rank(to) == RANK_4
-    ) {
-        en_passant_target = to - 8; // Directly behind the white pawn (south)
-    } 
-    
-    // Black moves a pawn 2 squares south
-    else if (
-        color == BLACK
-        && piece == PAWN
-        && get_rank(from) == RANK_7
-        && get_rank(to) == RANK_5
-    ) {
-        en_passant_target = to + 8; // Directly behind the black pawn (north)
-    }
-
-    else {
-        en_passant_target = NO_SQUARE;
-    }
-}
-
-Piece Board::handle_capture(Square capture_square, Color moving_color, MoveFlag mflag) {
-    halfmoves = 0;
-
-    if (mflag == EN_PASSANT) {
-        // In the case of en passant, the captured piece (pawn) is one rank
-        // "behind" the "to" square. "Behind" can either be south or north
-        // depending on whether the moving piece is white or black, respectively
-        capture_square = moving_color == WHITE
-            ? capture_square + SOUTH
-            : capture_square + NORTH;
-    }
-
-    Piece captured_piece = piece_map[capture_square];
-    remove_piece(moving_color ^ 1, captured_piece, capture_square);
-    return captured_piece;
-}
-
-void Board::handle_castle(Square castle_square) {
-    switch (castle_square) {
-        case C1: // White long castle
-            remove_piece(WHITE, ROOK, A1);
-            place_piece(WHITE, ROOK, D1);
-            break;
-        case G1: // White short castle
-            remove_piece(WHITE, ROOK, H1);
-            place_piece(WHITE, ROOK, F1);
-            break;
-        case C8: // Black long castle
-            remove_piece(BLACK, ROOK, A8);
-            place_piece(BLACK, ROOK, D8);
-            break;
-        case G8: // Black short castle
-            remove_piece(BLACK, ROOK, H8);
-            place_piece(BLACK, ROOK, F8);
-            break;
-    }
-}
-
-void Board::update_castling_rights(Square from, Square to) {
-    // Use precomputed lookup table to update castling rights
-    castling_rights &= ~castling_rights_updates[from];
-    castling_rights &= ~castling_rights_updates[to];
 }
 
 void Board::make_move(Move move) {
@@ -428,4 +325,31 @@ void Board::unmake_move(Move move) {
 
     // Toggle side to move
     to_move ^= 1;
+}
+
+// Used to determine if the side to move is in check
+bool Board::in_check() {
+    // This function uses piece attacks masks to determine if the side to move's
+    // king is in check. For non-sliding pieces, we can use precomputed attack maps
+    // and for sliding pieces we can generate attack masks.
+    // These masks are intersected with their respective enemy piece bitboards. 
+    // If there is an intersection (i.e. result is not 0), then the king is attacked
+    // by the piece. We collect all intersections using a union (faster than branching)
+    // and return the result which should be implicitly cast to a boolean.
+
+    Bitboard check_mask = 0;
+    Square king_sq = king_squares[to_move];
+    Color them = to_move ^ 1;
+    auto& enemy_pieces = pieces[them];
+
+    return (
+        // Non-sliding pieces
+        (KNIGHT_ATTACK_MAP[king_sq] & enemy_pieces[KNIGHT]) |
+        (KING_ATTACK_MAP[king_sq] & enemy_pieces[KING]) |
+        (PAWN_ATTACK_MAPS[them][king_sq] & enemy_pieces[PAWN]) |
+
+        // Sliding pieces
+        (generate_sliding_attack_mask<ROOK>(*this, king_sq) & (enemy_pieces[ROOK] | enemy_pieces[QUEEN])) |
+        (generate_sliding_attack_mask<BISHOP>(*this, king_sq) & (enemy_pieces[BISHOP] | enemy_pieces[QUEEN]))
+    );
 }

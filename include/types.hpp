@@ -5,9 +5,17 @@
 #include <cstdint>
 #include <atomic>
 #include <limits>
+#include <filesystem>
+
+// This is really just to silence the IDE warning since PROJECT_ROOT 
+// should be defined in CMakeLists.txt
+#ifndef PROJECT_ROOT
+#define PROJECT_ROOT "./"
+#endif
 
 // --- Globals ---
 extern std::atomic<bool> stop_requested;
+inline std::filesystem::path FEN_DIR = std::filesystem::path(PROJECT_ROOT) / "fen";
 
 // --- Board Constants ---
 
@@ -24,8 +32,10 @@ constexpr int MAX_PLY   = 256;
 // Upper bound for the maximum number of moves we can generate at a given depth
 constexpr int MAX_MOVES = 256;
 
-constexpr int MAX_SCORE = std::numeric_limits<int>::max();
-constexpr int MIN_SCORE = std::numeric_limits<int>::min();
+constexpr int MAX_SCORE         = std::numeric_limits<int>::max();
+constexpr int MIN_SCORE         = std::numeric_limits<int>::min();
+constexpr int CHECKMATE_SCORE   = 10000;
+constexpr int STALEMATE_SCORE   = 0;
 
 // --- Type Definitions ---
 

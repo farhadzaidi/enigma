@@ -1,77 +1,47 @@
+// This file is used to test the accuracy/speed of the chess engine's move generator.
+// It loads nearly a hundred thousand FEN strings with known node counts at various depths,
+// performs move generation, and compares node counts against expected counts.
+// Due to the large number of FEN strings, there is significant overhead from resetting and
+// loading each board position, as such this suite is better suited to accurately test the
+// move generator's correctness. For raw performance, perft is a better test.
+// Usage: ./build/enigma bench [--fast] [--verbose]
+
 #include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <vector>
-#include <string>
 #include <cstdint>
-#include <tuple>
 #include <chrono>
 #include <iomanip>
 
+#include "types.hpp"
 #include "bench.hpp"
 #include "board.hpp"
 #include "perft.hpp"
-#include "move.hpp"
+#include "utils.hpp"
 
-// This is really just to silence the IDE warning since PROJECT_ROOT
-// should be defined in CMakeLists.txt
-#ifndef PROJECT_ROOT
-#define PROJECT_ROOT "./"
-#endif
+// Number of lines to read from each file in fast mode
+const int NUM_LINES_FAST = 1000;
 
-namespace fs = std::filesystem;
-
-static void read_file(std::vector<std::string>& buffer, fs::path file_path) {
-    std::ifstream file(file_path);
-    if (!file) {
-        std::cerr << "Failed to open: " << file_path << "\n";
-    }
-
-    std::string line;
-    while (std::getline(file, line)) {
-        buffer.push_back(line);
-    }
-
-    file.close();
-}
-
-static std::vector<std::string> collect_lines() {
+static inline std::vector<std::string> collect_lines(bool fast) {
     std::vector<std::string> buffer;
-    fs::path fen_dir = fs::path(PROJECT_ROOT) / "fen";
-    for (const auto& entry : fs::directory_iterator(fen_dir)) {
-        read_file(buffer, entry.path());
+    for (const auto& entry : std::filesystem::directory_iterator(FEN_DIR)) {
+        // Only process .epd files
+        if (entry.path().extension() == ".epd") {
+            read_file(buffer, entry.path(), fast ? NUM_LINES_FAST : -1);
+        }
     }
 
     return buffer;
 }
 
-static std::tuple<std::string, int, uint64_t> parse_line(std::string line) {
-    auto pos = line.find(";");
-    std::string fen = line.substr(0, pos);
-    std::string rest = line.substr(pos + 1);
-
-    std::istringstream iss(rest);
-
-    std::string depth_str;
-    iss >> depth_str;
-    int depth = std::stoi(depth_str.substr(1));
-
-    uint64_t nodes;
-    iss >> nodes;
-
-    return {fen, depth, nodes};
-
-}
-
-void run_bench() {
+void run_bench(bool verbose, bool fast) {
     std::clog << "Running bench...\n";
     Board b;
-    auto lines = collect_lines();
+    auto lines = collect_lines(fast);
     uint64_t total_nodes = 0;
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& line : lines) {
-        auto [fen, depth, expected_nodes] = parse_line(line);
+        auto [fen, depth, expected_nodes] = parse_epd_line(line);
 
         b.reset();
         b.load_from_fen(fen);
@@ -80,15 +50,19 @@ void run_bench() {
 
         if (nodes != expected_nodes) {
             std::clog << "\n[FAILURE] FEN: " << fen << "\n";
-            std::clog << "At depth " << depth << ", expected " << expected_nodes << " nodes, but found " << nodes << "\n";
+            std::clog << "At depth " << depth << ", expected " << expected_nodes << " nodes, but generated " << nodes << "\n";
             return;
+        } else if (verbose) {
+            std::clog << "\n[SUCCESS] FEN: " << fen << "\n";
+            std::clog << "At depth " << depth << ", generated " << nodes << " nodes\n";
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
     
     double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
     std::clog << "[SUCCESS] Bench completed in " << std::fixed << std::setprecision(1) << seconds << " seconds\n";
-    std::clog << "NPS: " << static_cast<uint64_t>(total_nodes / seconds) << "\n";
+    std::clog << "Evaluated " << lines.size() << " positions, generating " << total_nodes << " total nodes\n";
+    std::clog << "Nodes per second: " << static_cast<uint64_t>(total_nodes / seconds) << "\n";
 }
 
 
