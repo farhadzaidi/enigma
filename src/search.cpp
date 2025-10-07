@@ -14,13 +14,7 @@ std::chrono::_V2::steady_clock::time_point deadline;
 // Useful for periodically checking stop condition (only check every X nodes)
 uint64_t nodes;
 
-// Number of nodes after which to check the remaining time
-constexpr int TIME_CHECK_PERIOD = 2047;
-
 static inline bool should_stop_search() {
-    // Only check every TIME_CHECK_PERIOD + 1 nodes
-    if ((nodes & TIME_CHECK_PERIOD) != 0) return false;
-
     // Stop when atomic flag is set
     if (stop_requested) return true;
 
