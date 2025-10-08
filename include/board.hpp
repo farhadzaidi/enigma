@@ -1,18 +1,12 @@
 #pragma once
 
 #include <string>
-#include <stack>
+#include <array>
 
 #include "types.hpp"
 #include "move.hpp"
 #include "utils.hpp"
 #include "precompute.hpp"
-
-// Type definitions for board representation
-using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;
-using ColorBitboards    = std::array<Bitboard, NUM_COLORS>;
-using PieceMap          = std::array<Piece, NUM_SQUARES>;
-using KingSquares       = std::array<Square, NUM_COLORS>;
 
 // This struct contains important board state information which is useful for undoing moves
 // These attributes are overwritten when making a move and unable to be restored from the move encoding
@@ -35,6 +29,15 @@ struct State {
         captured_piece(cp) {}
 };
 
+// Type definitions for board representation
+using PieceBitboards    = std::array<std::array<Bitboard, NUM_PIECES>, NUM_COLORS>;
+using ColorBitboards    = std::array<Bitboard, NUM_COLORS>;
+using PieceMap          = std::array<Piece, NUM_SQUARES>;
+using KingSquares       = std::array<Square, NUM_COLORS>;
+using Material          = std::array<int, NUM_COLORS>;
+using MoveStack         = std::array<Move, MAX_PLY>;
+using StateStack        = std::array<State, MAX_PLY>;
+
 class Board {
 public:
     // --- Board Representation ---
@@ -45,6 +48,7 @@ public:
     // Additional information 
     KingSquares king_squares;
     Bitboard occupied;
+    Material material;
 
     // Board state information
     Color to_move;
@@ -56,8 +60,8 @@ public:
     // These stacks are implemented as arrays using ply as a pointer to the top
     // They are useful for undoing moves
     int ply;
-    std::array<Move, MAX_PLY> moves; // Keeps track of made moves
-    std::array<State, MAX_PLY> states; // Keeps track of irreversible board state
+    MoveStack moves; // Keeps track of made moves
+    StateStack states; // Keeps track of irreversible board state
 
     // ### PUBLIC API
 
@@ -65,10 +69,11 @@ public:
     void reset();
     void load_from_fen(const std::string& fen = START_POS_FEN);
     void print_board() const;
+    void print_board_state() const;
     void debug();
     void make_move(Move move);
     void unmake_move(Move move);
-    bool in_check();
+    bool in_check() const;
 
 private:
 
@@ -133,6 +138,7 @@ private:
 
     inline Piece handle_capture(Square capture_square, Color moving_color, MoveFlag mflag) {
         halfmoves = 0;
+        Color captured_color = moving_color ^ 1;
 
         if (mflag == EN_PASSANT) {
             // In the case of en passant, the captured piece (pawn) is one rank
@@ -144,7 +150,8 @@ private:
         }
 
         Piece captured_piece = piece_map[capture_square];
-        remove_piece(moving_color ^ 1, captured_piece, capture_square);
+        remove_piece(captured_color, captured_piece, capture_square);
+        // material[captured_color] -= PIECE_VALUE[captured_piece];
         return captured_piece;
     }
 

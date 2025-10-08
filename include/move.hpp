@@ -24,4 +24,8 @@ struct Move {
     constexpr MoveType type() const { return (move >> 12) & 1; }
     constexpr MoveFlag flag() const { return (move >> 13) & 7; }
     constexpr bool is_promotion() const { return flag() >= 3; }
+
+    // Comparison operators
+    constexpr bool operator==(const Move& other) const { return move == other.move; }
+    constexpr bool operator!=(const Move& other) const { return move != other.move; }
 };

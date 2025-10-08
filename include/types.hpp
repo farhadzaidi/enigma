@@ -201,7 +201,7 @@ constexpr const char* POSITION_6_FEN = // Promotion + check
 // --- Evaluation ---
 constexpr std::array<int, NUM_PIECES> PIECE_VALUE = {
     // PAWN, KNIGHT/BISHOP, ROOK, QUEEN, KING
-    1, 3, 3, 5, 9, std::numeric_limits<int>::max()
+    100, 300, 300, 500, 900, 0 // King adds nothing to material value since it can never be captured
 };
 
 // --- Magic Maps ---

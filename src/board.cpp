@@ -21,6 +21,7 @@ void Board::reset() {
 
     piece_map.fill(NO_PIECE);
     king_squares.fill(NO_SQUARE);
+    material.fill(0);
 
     occupied = EMPTY_BITBOARD;
     to_move = NO_COLOR;
@@ -95,6 +96,7 @@ void Board::load_from_fen(const std::string& fen) {
         }
 
         place_piece(color, piece, square);
+        material[color] += PIECE_VALUE[piece];
         file++;
     }
 
@@ -133,7 +135,7 @@ void Board::load_from_fen(const std::string& fen) {
 
 void Board::print_board() const {
     std::string EMPTY_SYMBOL = ".";
-    std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{ // yuck...
+    std::array<std::array<std::string, NUM_PIECES>, NUM_COLORS> SYMBOLS = {{
         { "♟", "♝", "♞", "♜", "♛", "♚" },
         { "♙", "♗", "♘", "♖", "♕", "♔" }
     }};
@@ -171,20 +173,86 @@ void Board::print_board() const {
     std::clog << "\n\n";
 }
 
+void Board::print_board_state() const {
+    std::clog << "\t--- Board State ---\n";
+    std::clog << "\tSide to move: " << (to_move == WHITE ? "White" : "Black") << "\n";
+
+    // Castling rights
+    std::clog << "\tCastling rights: ";
+    if (castling_rights == NO_CASTLING_RIGHTS) {
+        std::clog << "-";
+    } else {
+        if (castling_rights & WHITE_SHORT) std::clog << "K";
+        if (castling_rights & WHITE_LONG) std::clog << "Q";
+        if (castling_rights & BLACK_SHORT) std::clog << "k";
+        if (castling_rights & BLACK_LONG) std::clog << "q";
+    }
+    std::clog << "\n";
+
+    // En passant target
+    std::clog << "\tEn passant: ";
+    if (en_passant_target == NO_SQUARE) {
+        std::clog << "-";
+    } else {
+        std::clog << index_to_uci(en_passant_target);
+    }
+    std::clog << "\n";
+
+    // Material
+    std::clog << "\tMaterial: White " << material[WHITE]
+              << " | Black " << material[BLACK] << "\n";
+
+    // Move counters
+    std::clog << "\tHalfmove clock: " << halfmoves << "\n";
+    std::clog << "\tFullmove number: " << fullmoves << "\n";
+    std::clog << "\tPly: " << ply << "\n";
+
+    // King positions
+    std::clog << "\tWhite king: " << index_to_uci(king_squares[WHITE]) << "\n";
+    std::clog << "\tBlack king: " << index_to_uci(king_squares[BLACK]) << "\n";
+
+    // Check status
+    std::clog << "\tIn check: " << (in_check() ? "Yes" : "No") << "\n";
+    std::clog << "\t-------------------\n\n";
+}
+
 void Board::debug() {
     std::string input = "";
     while (true) {
+        std::clog << "\n\n============================================================================\n";
         print_board();
+        print_board_state();
+        std::clog << "============================================================================\n";
+
+        MoveList legal_moves = generate_moves(*this);
 
         std::cin >> input;
         if (input == "quit") {
             break;
         } else if (input == "undo") {
-            unmake_move(moves[ply]);
+            if (ply > 0) {
+                unmake_move(moves[ply - 1]);
+            } else {
+                std::clog << "Error: Cannot undo move from starting positon.";
+            }
         } else {
             Move move = encode_move_from_uci(*this, input);
-            make_move(move);
+
+            bool is_legal_move = false;
+            for (Move legal_move : legal_moves) {
+                if (move == legal_move) {
+                    is_legal_move = true;
+                    break;
+                }
+            }
+
+            if (is_legal_move) {
+                make_move(move);
+            } else {
+                std::clog << "Error: Invalid or illegal move '" << input <<"'";
+            }
         }
+
     }
 }
 
@@ -289,6 +357,7 @@ void Board::unmake_move(Move move) {
     // Restore the captured piece
     if (mtype == CAPTURE) {
         Square capture_square = to;
+        Color captured_color = moving_color ^ 1;
 
         if (mflag == EN_PASSANT) {
             // Same logic as before
@@ -297,7 +366,8 @@ void Board::unmake_move(Move move) {
                 : capture_square + 8;
         }
 
-        place_piece(moving_color ^ 1, prev_state.captured_piece, capture_square);
+        place_piece(captured_color, prev_state.captured_piece, capture_square);
+        // material[captured_color] += PIECE_VALUE[prev_state.captured_piece];
     }
 
     if (mflag == CASTLE) {
@@ -328,7 +398,7 @@ void Board::unmake_move(Move move) {
 }
 
 // Used to determine if the side to move is in check
-bool Board::in_check() {
+bool Board::in_check() const {
     // This function uses piece attacks masks to determine if the side to move's
     // king is in check. For non-sliding pieces, we can use precomputed attack maps
     // and for sliding pieces we can generate attack masks.

@@ -49,8 +49,6 @@ dest_path = VERSIONS_DIR / new_filename
 # Create versions directory if it doesn't exist
 VERSIONS_DIR.mkdir(exist_ok=True)
 
-print(dest_path)
-
 # Copy the binary
 shutil.copy2(BINARY_PATH, dest_path)
 print(f"Saved binary as: {new_filename}")
