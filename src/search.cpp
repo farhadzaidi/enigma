@@ -22,7 +22,7 @@ static inline bool should_stop_search() {
     return std::chrono::steady_clock::now() >= deadline;
 }
 
-static inline int negamax(Board& b, int depth) {
+static inline int negamax(Board& b, int depth, int alpha, int beta) {
     nodes++;
 
     // Stop search early if needed
@@ -36,7 +36,6 @@ static inline int negamax(Board& b, int depth) {
         return evaluate(b);
     }
 
-    int best_score = MIN_SCORE;
     MoveList moves = generate_moves(b);
 
     // Side to move has no remaining moves
@@ -54,12 +53,24 @@ static inline int negamax(Board& b, int depth) {
 
     for (Move move : moves) {
         b.make_move(move);
-        int score = -negamax(b, depth - 1);
-        best_score = std::max(best_score, score);
+
+        // Update the best score we found so far (alpha)
+        int score = -negamax(b, depth - 1, -beta, -alpha);
+        alpha = std::max(alpha, score);
+
         b.unmake_move(move);
+
+        // If the move we found is too good and our opponent will not allow it (because
+        // they found a better move elsewhere), we can break out of the loop and return
+        // early, effectively pruning the branch
+        // In other words, the move we found is worse for the opponent than their current
+        // lower bound and so we'll never be allowed to play this move
+        if (alpha >= beta) {
+            break;
+        }
     }
     
-    return best_score;
+    return alpha;
 }
 
 // Iteratively calls negamax search with increasing depth
@@ -74,17 +85,33 @@ Move search(Board& b, int time_limit_ms) {
     // Ensure at least one iteration to make sure we don't return a null move
     while (depth == 1 || !should_stop_search()) {
         Move best_move_at_depth;
-        int best_score = MIN_SCORE;
+
+        // Alpha will serve as our lower bound (best score so far at this depth)
+        int alpha = MIN_SCORE;
+
+        // Beta will serve as our upper bound - if we find a move better than beta
+        // than that move is too good and our opponent won't allow it (it's worse 
+        // for them than their lower bound)
+        int beta = MAX_SCORE;
 
         MoveList moves = generate_moves(b);
         for (Move move : moves) {
             b.make_move(move);
-            int score = -negamax(b, depth - 1);
-            if (score > best_score) {
-                best_score = score;
+
+            // If we found a move better than the current best move at this depth,
+            // update the score and the best move at this depth
+            int score = -negamax(b, depth - 1, -beta, -alpha);
+            if (score > alpha) {
+                alpha = score;
                 best_move_at_depth = move;
             }
+
             b.unmake_move(move);
+
+            // Apply alpha-beta pruning
+            if (alpha >= beta) {
+                break;
+            }
         }
 
         // Once search is complete at this depth, we can replace the best move
