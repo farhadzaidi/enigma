@@ -11,8 +11,7 @@
 struct Move {
     uint16_t move;
 
-    // Default constructor for array initialization
-    constexpr Move() : move(NULL_MOVE) {}
+    constexpr Move() : move(0) {}
 
     // Encodes move as an unsigned 16 bit int
     constexpr Move(Square from, Square to, MoveType type, MoveFlag flag)
@@ -29,3 +28,6 @@ struct Move {
     constexpr bool operator==(const Move& other) const { return move == other.move; }
     constexpr bool operator!=(const Move& other) const { return move != other.move; }
 };
+
+// Null move sentinel value
+constexpr Move NULL_MOVE = Move();

@@ -32,10 +32,11 @@ constexpr int MAX_PLY   = 256;
 // Upper bound for the maximum number of moves we can generate at a given depth
 constexpr int MAX_MOVES = 256;
 
-constexpr int MAX_SCORE         = std::numeric_limits<int>::max();
-constexpr int MIN_SCORE         = std::numeric_limits<int>::min();
-constexpr int CHECKMATE_SCORE   = 10000;
-constexpr int STALEMATE_SCORE   = 0;
+constexpr int MAX_SCORE          =  999999;
+constexpr int MIN_SCORE          = -999999;
+constexpr int CHECKMATE_SCORE    =  100000;
+constexpr int STALEMATE_SCORE    =  0;
+constexpr int SEARCH_INTERRUPTED =  std::numeric_limits<int>::max();
 
 // --- Type Definitions ---
 
@@ -50,6 +51,7 @@ using Rank              = uint8_t;
 using File              = uint8_t;
 using CastleType        = uint8_t;
 using Direction         = int;
+using SearchMode        = int;
 
 // --- Enums ---
 
@@ -150,6 +152,13 @@ enum CastleTypeEnum : CastleType {
     BLACK_LONG_CASTLE_TYPE
 };
 
+enum SearchModeEnum : SearchMode {
+    TIME,
+    NODES,
+    DEPTH,
+    INFINITE
+};
+
 // Ranks and Files
 
 constexpr Bitboard RANK_1_MASK = 0x00000000000000FFULL;
@@ -180,7 +189,6 @@ constexpr Bitboard BLACK_SHORT_CASTLE_PATH  = 0x6000000000000000ULL;
 // --- Sentinel Values ---
 
 constexpr Bitboard EMPTY_BITBOARD = 0;
-constexpr uint16_t NULL_MOVE      = 0;
 
 // --- FEN Strings ---
 

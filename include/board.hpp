@@ -151,7 +151,7 @@ private:
 
         Piece captured_piece = piece_map[capture_square];
         remove_piece(captured_color, captured_piece, capture_square);
-        // material[captured_color] -= PIECE_VALUE[captured_piece];
+        material[captured_color] -= PIECE_VALUE[captured_piece];
         return captured_piece;
     }
 

@@ -36,7 +36,7 @@ static void print(const std::string& str) {
 }
 
 static void cmd_uci() {
-    print("id name Engima");
+    print("id name Enigma");
     print("id author Syed Zaidi");
     print("uciok");
 }
@@ -57,9 +57,6 @@ static void cmd_position(const std::string& cmd, Board& b) {
     std::istringstream iss(cmd);
     std::string token;
     iss >> token >> token; // Discard "position" token and read next
-
-    // Reset the board before loading from FEN
-    b.reset();
 
     // Load from standard start position
     if (token == "startpos") {
@@ -87,6 +84,8 @@ static void cmd_position(const std::string& cmd, Board& b) {
 static void cmd_go(std::string& cmd, Board& b) {
     // Parse go command
     int wtime = -1, btime = -1, winc = 0, binc = 0;
+    int movetime = -1, nodes = -1, depth = -1;
+    bool infinite = false;
     std::istringstream iss(cmd);
     std::string token;
 
@@ -101,24 +100,64 @@ static void cmd_go(std::string& cmd, Board& b) {
             iss >> winc;
         } else if (token == "binc") {
             iss >> binc;
+        } else if (token == "movetime") {
+            iss >> movetime;
+        } else if (token == "nodes") {
+            iss >> nodes;
+        } else if (token == "depth") {
+            iss >> depth;
+        } else if (token == "infinite") {
+            infinite = true;
         }
     }
 
-    // Default time limit on search in milliseconds
-    int time_limit = 50;
+    SearchMode search_mode;
+    if (movetime != -1) {
+        search_mode = TIME;
+    } else if (nodes != -1) {
+        search_mode = NODES;
+    } else if (depth != -1) {
+        search_mode = DEPTH;
+    } else if (infinite) {
+        search_mode = INFINITE;
+    } else {
+        // If we're not explicitly told how to search, then we attempt
+        // compute search time by looking at time controls
+        search_mode = TIME;
 
-    // Determine how long to search for
-    if (b.to_move == WHITE && wtime != -1) {
-        time_limit = calc_time_limit(wtime, winc);
-    } else if (b.to_move == BLACK && btime != -1) {
-        time_limit = calc_time_limit(btime, binc);
+        // Default time limit in milliseconds in case time controls
+        // haven't been specified
+        movetime = 50;
+
+        // Determine how long to search for
+        if (b.to_move == WHITE && wtime != -1) {
+            movetime = calc_time_limit(wtime, winc);
+        } else if (b.to_move == BLACK && btime != -1) {
+            movetime = calc_time_limit(btime, binc);
+        }
     }
 
     // Create new search thread and start the search
     clean_up_thread();
     search_thread = std::thread([&]() {
-        Move best_move = search(b, time_limit);
-        std::string best_move_uci = decode_move_to_uci(best_move);
+        Move best_move;
+
+        if (search_mode == TIME) {
+            best_move = search_time(b, movetime);
+        } else if (search_mode == NODES) {
+            best_move = search_nodes(b, nodes);
+        } else if (search_mode == DEPTH) {
+            best_move = search_depth(b, depth);
+        } else if (search_mode == INFINITE) {
+            best_move = search_infinite(b);
+        }
+
+        // Default no move/null move convention
+        std::string best_move_uci = "0000";
+        if (best_move != NULL_MOVE) {
+            best_move_uci = decode_move_to_uci(best_move);
+        }
+
         print("bestmove " + best_move_uci);
     });
 }

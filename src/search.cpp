@@ -7,30 +7,37 @@
 #include "movegen.hpp"
 #include "evaluate.hpp"
 
-// Deadline after which we stop the search
-std::chrono::_V2::steady_clock::time_point deadline;
+static SearchGlobals search_globals;
 
-// Keep track of how many nodes have been traversed.
-// Useful for periodically checking stop condition (only check every X nodes)
-uint64_t nodes;
-
+template <SearchMode SM>
 static inline bool should_stop_search() {
-    // Stop when atomic flag is set
-    if (stop_requested) return true;
+    // Stop when the search interrupted flag is set or if stop is requested via UCI
+    if (search_globals.search_interrupted || stop_requested) {
+        return true;
+    }
 
-    // Check if the search has exceeded its time limit
-    return std::chrono::steady_clock::now() >= deadline;
+    if constexpr (SM == TIME) {
+        // Check if the search has exceeded its time limit (if search mode is TIME)
+        return std::chrono::steady_clock::now() >= search_globals.deadline;
+    } else if constexpr (SM == NODES) {
+        // Check if search has exceeded the number of nodes to search (if search mode is NODE)
+        return search_globals.nodes >= search_globals.limits.nodes;
+    } else {
+        // In all other cases, we shouldn't stop the search
+        // INFINITE = keep going forever (or until stop flag)
+        // DEPTH is handled in the iterative search loop
+        return false;
+    }
 }
 
+template <SearchMode SM>
 static inline int negamax(Board& b, int depth, int alpha, int beta) {
-    nodes++;
-
-    // Stop search early if needed
-    // Returning minimum score here to indicate that we couldn't find a move
-    // Guarantees that we don't select this move
-    if (should_stop_search()) {
-        return MIN_SCORE;
+    if (should_stop_search<SM>()) {
+        search_globals.search_interrupted = true;
+        return SEARCH_INTERRUPTED;
     }
+
+    search_globals.nodes++;
 
     if (depth == 0) {
         return evaluate(b);
@@ -53,18 +60,19 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
 
     for (Move move : moves) {
         b.make_move(move);
-
-        // Update the best score we found so far (alpha)
-        int score = -negamax(b, depth - 1, -beta, -alpha);
-        alpha = std::max(alpha, score);
-
+        int child = negamax<SM>(b, depth - 1, -beta, -alpha);
         b.unmake_move(move);
 
-        // If the move we found is too good and our opponent will not allow it (because
-        // they found a better move elsewhere), we can break out of the loop and return
-        // early, effectively pruning the branch
-        // In other words, the move we found is worse for the opponent than their current
-        // lower bound and so we'll never be allowed to play this move
+        // Discard the score and return early if the search has been interrupted
+        if (child == SEARCH_INTERRUPTED) {
+            return SEARCH_INTERRUPTED;
+        }
+
+        // Negate the value since we're using negamax
+        int score = -child;
+
+        // Update lower bound and determine if we need to prune this branch
+        alpha = std::max(alpha, score);
         if (alpha >= beta) {
             break;
         }
@@ -73,53 +81,87 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
     return alpha;
 }
 
-// Iteratively calls negamax search with increasing depth
-Move search(Board& b, int time_limit_ms) {
-    // Calculate search deadline based on time limit
-    deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(time_limit_ms);
+// Searches all root moves at a given depth and returns the best move
+template <SearchMode SM>
+static Move search_at_depth(Board& b, int depth) {
+    Move best_move;
 
-    nodes = 0;
+    // Alpha will serve as our lower bound (best score so far at this depth)
+    int alpha = MIN_SCORE;
+
+    // Beta will serve as our upper bound - if we find a move better than beta
+    // then that move is too good and our opponent won't allow it (it's worse
+    // for them than their lower bound)
+    int beta = MAX_SCORE;
+
+    MoveList moves = generate_moves(b);
+    for (Move move : moves) {
+        b.make_move(move);
+        int child = negamax<SM>(b, depth - 1, -beta, -alpha);
+        b.unmake_move(move);
+
+        // Same here - return early if the search is interrutpted, otherwise negate
+        // the score to process it for the parent
+        if (child == SEARCH_INTERRUPTED) {
+            return NULL_MOVE;
+        }
+        int score = -child;
+
+        // If we found a move better than the current best move at this depth,
+        // update the best score (alpha) and the best move at this depth
+        if (score > alpha) {
+            alpha = score;
+            best_move = move;
+        }
+
+        // If the move we found is too good and our opponent will not allow it (because
+        // they found a better move elsewhere), we can break out of the loop and return
+        // early, effectively pruning the branch (aka beta cutoff)
+        // In other words, the move we found is worse for the opponent than their current
+        // lower bound and so we'll never be allowed to play this move
+        if (alpha >= beta) {
+            break;
+        }
+    }
+
+    return best_move;
+}
+
+// Initializes search globals and performs iterative deepening search
+template <SearchMode SM>
+Move search(Board& b, const SearchLimits& limits) {
+    search_globals.limits = limits;
+    search_globals.nodes = 0;
+    search_globals.search_interrupted = false;
+
+    // Calculate search deadline based on time limit if search mode is TIME
+    if constexpr (SM == TIME) {
+        search_globals.deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(limits.time);
+    }
+
     int depth = 1;
     Move best_move;
 
-    // Ensure at least one iteration to make sure we don't return a null move
-    while (depth == 1 || !should_stop_search()) {
-        Move best_move_at_depth;
-
-        // Alpha will serve as our lower bound (best score so far at this depth)
-        int alpha = MIN_SCORE;
-
-        // Beta will serve as our upper bound - if we find a move better than beta
-        // than that move is too good and our opponent won't allow it (it's worse 
-        // for them than their lower bound)
-        int beta = MAX_SCORE;
-
-        MoveList moves = generate_moves(b);
-        for (Move move : moves) {
-            b.make_move(move);
-
-            // If we found a move better than the current best move at this depth,
-            // update the score and the best move at this depth
-            int score = -negamax(b, depth - 1, -beta, -alpha);
-            if (score > alpha) {
-                alpha = score;
-                best_move_at_depth = move;
-            }
-
-            b.unmake_move(move);
-
-            // Apply alpha-beta pruning
-            if (alpha >= beta) {
-                break;
-            }
+    // Iterative search loop
+    while (!should_stop_search<SM>()) {
+        // Check if we've hit the max depth if search mode is DEPTH
+        if constexpr (SM == DEPTH) {
+            if (depth > search_globals.limits.depth) break;
         }
 
-        // Once search is complete at this depth, we can replace the best move
-        // from the search at the previous depth with the best move from the
-        // search at this depth
-        best_move = best_move_at_depth;
+        Move best_move_at_depth = search_at_depth<SM>(b, depth);
+        if (best_move_at_depth != NULL_MOVE) {
+            best_move = best_move_at_depth;
+        }
+
         depth++;
     }
 
     return best_move;
 }
+
+// Explicit template instantiations
+template Move search<TIME>(Board& b, const SearchLimits& limits);
+template Move search<NODES>(Board& b, const SearchLimits& limits);
+template Move search<DEPTH>(Board& b, const SearchLimits& limits);
+template Move search<INFINITE>(Board& b, const SearchLimits& limits);

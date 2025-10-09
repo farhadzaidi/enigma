@@ -33,6 +33,9 @@ void Board::reset() {
 }
 
 void Board::load_from_fen(const std::string& fen) {
+    // Reset the board before loading from FEN
+    reset();
+
     std::vector<std::string> parts;
     std::istringstream iss(fen);
     std::string item;
@@ -285,15 +288,19 @@ void Board::make_move(Move move) {
     switch (mflag) {
         case PROMOTION_BISHOP:
             moving_piece = BISHOP;
+            material[moving_color] += PIECE_VALUE[BISHOP] - PIECE_VALUE[PAWN];
             break;
         case PROMOTION_KNIGHT:
             moving_piece = KNIGHT;
+            material[moving_color] += PIECE_VALUE[KNIGHT] - PIECE_VALUE[PAWN];
             break;
         case PROMOTION_ROOK:
             moving_piece = ROOK;
+            material[moving_color] += PIECE_VALUE[ROOK] - PIECE_VALUE[PAWN];
             break;
         case PROMOTION_QUEEN:
             moving_piece = QUEEN;
+            material[moving_color] += PIECE_VALUE[QUEEN] - PIECE_VALUE[PAWN];
             break;
     }
 
@@ -348,6 +355,7 @@ void Board::unmake_move(Move move) {
     // In the case of a promotion, we change the moving piece to pawn so we place
     // the correct piece back on "from"
     if (move.is_promotion()) {
+        material[moving_color] -= PIECE_VALUE[moving_piece] - PIECE_VALUE[PAWN];
         moving_piece = PAWN;
     }
 
@@ -367,7 +375,7 @@ void Board::unmake_move(Move move) {
         }
 
         place_piece(captured_color, prev_state.captured_piece, capture_square);
-        // material[captured_color] += PIECE_VALUE[prev_state.captured_piece];
+        material[captured_color] += PIECE_VALUE[prev_state.captured_piece];
     }
 
     if (mflag == CASTLE) {
