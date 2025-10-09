@@ -36,7 +36,7 @@ constexpr int MAX_SCORE          =  999999;
 constexpr int MIN_SCORE          = -999999;
 constexpr int CHECKMATE_SCORE    =  100000;
 constexpr int STALEMATE_SCORE    =  0;
-constexpr int SEARCH_INTERRUPTED =  std::numeric_limits<int>::max();
+constexpr int SEARCH_INTERRUPTED =  0;
 
 // --- Type Definitions ---
 

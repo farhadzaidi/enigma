@@ -34,7 +34,7 @@ template <SearchMode SM>
 static inline int negamax(Board& b, int depth, int alpha, int beta) {
     if (should_stop_search<SM>()) {
         search_globals.search_interrupted = true;
-        return SEARCH_INTERRUPTED;
+        return SEARCH_INTERRUPTED; // Dummy value (for semantics) - will not be used
     }
 
     search_globals.nodes++;
@@ -60,16 +60,13 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
 
     for (Move move : moves) {
         b.make_move(move);
-        int child = negamax<SM>(b, depth - 1, -beta, -alpha);
+        int score = -negamax<SM>(b, depth - 1, -beta, -alpha);
         b.unmake_move(move);
 
         // Discard the score and return early if the search has been interrupted
-        if (child == SEARCH_INTERRUPTED) {
+        if (search_globals.search_interrupted) {
             return SEARCH_INTERRUPTED;
         }
-
-        // Negate the value since we're using negamax
-        int score = -child;
 
         // Update lower bound and determine if we need to prune this branch
         alpha = std::max(alpha, score);
@@ -97,15 +94,14 @@ static Move search_at_depth(Board& b, int depth) {
     MoveList moves = generate_moves(b);
     for (Move move : moves) {
         b.make_move(move);
-        int child = negamax<SM>(b, depth - 1, -beta, -alpha);
+        int score = -negamax<SM>(b, depth - 1, -beta, -alpha);
         b.unmake_move(move);
 
         // Same here - return early if the search is interrutpted, otherwise negate
         // the score to process it for the parent
-        if (child == SEARCH_INTERRUPTED) {
+        if (search_globals.search_interrupted) {
             return NULL_MOVE;
         }
-        int score = -child;
 
         // If we found a move better than the current best move at this depth,
         // update the best score (alpha) and the best move at this depth
