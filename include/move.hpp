@@ -16,7 +16,7 @@ struct Move {
     // Encodes move as an unsigned 16 bit int
     constexpr Move(Square from, Square to, MoveType type, MoveFlag flag)
         : move((from) | (to << 6) | (type << 12) | (flag << 13)) {}
-
+    
     // Member functions
     constexpr Square from() const { return move & 63; }
     constexpr Square to() const { return (move >> 6) & 63; }

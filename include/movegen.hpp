@@ -15,7 +15,7 @@ struct MoveList {
         size++;
     }
 
-    // Iterator support for range-based for loops
+    // Iterator support
     Move* begin() { return moves.data(); }
     Move* end() { return moves.data() + size; }
     const Move* begin() const { return moves.data(); }

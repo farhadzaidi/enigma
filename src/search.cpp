@@ -9,6 +9,16 @@
 
 static SearchGlobals search_globals;
 
+
+/* Move Ordering Hierarchy
+1. TT move / PV move
+2. Captures (scored by MVV-LVA)
+3. Killer Moves (cached)
+4. Quiet Moves (use history heuristic)
+5. Evasions
+6. Bad Captures (SEE < 0)
+*/
+
 template <SearchMode SM>
 static inline bool should_stop_search() {
     // Stop when the search interrupted flag is set or if stop is requested via UCI
