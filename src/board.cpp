@@ -227,7 +227,7 @@ void Board::debug() {
         print_board_state();
         std::clog << "============================================================================\n";
 
-        MoveList legal_moves = generate_moves(*this);
+        MoveList legal_moves = generate_moves<ALL>(*this);
 
         std::cin >> input;
         if (input == "quit") {

@@ -52,6 +52,8 @@ using File              = uint8_t;
 using CastleType        = uint8_t;
 using Direction         = int;
 using SearchMode        = int;
+using MoveSelectorPhase = int;
+using MoveGenMode       = int;
 
 // --- Enums ---
 
@@ -157,6 +159,20 @@ enum SearchModeEnum : SearchMode {
     NODES,
     DEPTH,
     INFINITE
+};
+
+enum MoveSelectorPhaseEnum : MoveSelectorPhase {
+    TRANSPOSITION,
+    GOOD_CAPTURE,
+    KILLER,
+    QUIET_MOVE,
+    BAD_CAPTURE
+};
+
+enum MoveGenModeEnum : MoveGenMode {
+    ALL,
+    QUIET_ONLY,
+    CAPTURE_ONLY
 };
 
 // Ranks and Files

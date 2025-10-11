@@ -33,10 +33,12 @@ static inline bool is_attacked_by_slider(const Board &b, Square sq) {
     );
 }
 
-template <Piece P>
+template <Piece P, MoveGenMode M>
 static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& checkInfo) {
     Bitboard piece_bb = b.pieces[b.to_move][P];
-    Bitboard not_friendly = ~b.colors[b.to_move];
+    Bitboard us = b.colors[b.to_move];
+    Bitboard them = b.colors[b.to_move ^ 1];
+    Bitboard empty = ~b.occupied;
 
     while (piece_bb) {
         Square from = pop_lsb(piece_bb);
@@ -50,7 +52,8 @@ static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& ch
                           generate_sliding_attack_mask<ROOK>  (b, from) :
                           0;
 
-        attack_mask &= not_friendly;
+        attack_mask &= ~us;
+
         if constexpr (P != KING) {
             attack_mask &= checkInfo.must_cover;
         }
@@ -59,12 +62,20 @@ static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& ch
             attack_mask &= checkInfo.pins[from];
         }
 
-        while (attack_mask) {
-            Square to = pop_lsb(attack_mask);
-            MoveType mtype = b.piece_map[to] == NO_PIECE ? QUIET : CAPTURE;
+        if constexpr (M == QUIET_ONLY || M == ALL) {
+            Bitboard quiet_moves = attack_mask & empty;
+            while (quiet_moves) {
+                Square to = pop_lsb(quiet_moves);
+                moves.add_move(Move(from, to, QUIET, NORMAL));
+            }
+        }
 
-            if constexpr (P == KING) {
-                if (mtype == CAPTURE) {
+        if constexpr (M == CAPTURE_ONLY || M == ALL) {
+            Bitboard captures = attack_mask & them;
+            while (captures) {
+                Square to = pop_lsb(captures);
+
+                if constexpr (P == KING) {
                     // If the move is a capture by the king, then we need to recompute
                     // enemy sliding attacks to see if an x-ray opened up.
                     Bitboard from_mask = get_mask(from);
@@ -73,9 +84,9 @@ static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& ch
                     b.occupied ^= from_mask;
                     if (is_attacked) continue;
                 }
-            }
 
-            moves.add_move(Move(from, to, mtype, NORMAL));
+                moves.add_move(Move(from, to, CAPTURE, NORMAL));
+            }
         }
     }
 }
@@ -99,7 +110,6 @@ static inline void encode_pawn_moves(
         }
 
         if constexpr (IS_PROMOTION) {
-
             moves.add_move(Move(from, to, MT, PROMOTION_QUEEN));
             moves.add_move(Move(from, to, MT, PROMOTION_ROOK));
             moves.add_move(Move(from, to, MT, PROMOTION_BISHOP));
@@ -144,7 +154,7 @@ static inline void encode_pawn_moves(
     }
 }
 
-template<Color C>
+template<Color C, MoveGenMode M>
 static inline void generate_pawn_moves(Board& b, MoveList& moves, CheckInfo& checkInfo) {
     // Compile-time constants derived from template
     constexpr Direction FWD              = C == WHITE ? NORTH : SOUTH;
@@ -155,50 +165,53 @@ static inline void generate_pawn_moves(Board& b, MoveList& moves, CheckInfo& che
     constexpr Bitboard  PROMO_MASK       = C == WHITE ? RANK_7_MASK : RANK_2_MASK;
     constexpr Bitboard  DOUBLE_PUSH_MASK = C == WHITE ? RANK_4_MASK : RANK_5_MASK;
 
-    Bitboard empty = ~b.occupied;
-    Bitboard enemy_pieces = b.colors[C ^ 1];
     Bitboard pawns = b.pieces[C][PAWN];
     Bitboard promo_pawns = pawns & PROMO_MASK;
     Bitboard non_promo_pawns = pawns & ~PROMO_MASK;
 
-    // Don't mask with must_cover yet, since we have to compute double push
-    Bitboard single_push    = shift<FWD>(non_promo_pawns) & empty; 
-    Bitboard double_push    = shift<FWD>(single_push) & empty & DOUBLE_PUSH_MASK & checkInfo.must_cover;
-    // Now we can mask
-    single_push &= checkInfo.must_cover;
+    if constexpr (M == QUIET_ONLY || M == ALL) {
+        Bitboard empty = ~b.occupied;
 
-    Bitboard right_capture  = shift<FWD_RIGHT>(non_promo_pawns) & enemy_pieces & checkInfo.must_cover;
-    Bitboard left_capture   = shift<FWD_LEFT>(non_promo_pawns) & enemy_pieces & checkInfo.must_cover;
-    
-    Bitboard right_en_passant = 0;
-    Bitboard left_en_passant = 0;
-    if (b.en_passant_target != NO_SQUARE) {
-        Bitboard en_passant_target_mask = get_mask(b.en_passant_target);
-        right_en_passant = shift<FWD_RIGHT>(non_promo_pawns) & en_passant_target_mask;
-        left_en_passant  = shift<FWD_LEFT>(non_promo_pawns) & en_passant_target_mask;
+        Bitboard push_promo  = shift<FWD>(promo_pawns) & empty & checkInfo.must_cover;
+
+        Bitboard single_push = shift<FWD>(non_promo_pawns) & empty; 
+        Bitboard double_push = shift<FWD>(single_push) & empty & DOUBLE_PUSH_MASK & checkInfo.must_cover;
+
+        // Mask single push with must cover (we didn't do it earlier to generate double_push)
+        single_push &= checkInfo.must_cover;
+
+        encode_pawn_moves<C, FWD, QUIET, true>(b, moves, checkInfo, push_promo);
+
+        encode_pawn_moves<C, FWD, QUIET>(b, moves, checkInfo, single_push);
+        encode_pawn_moves<C, FWD_FWD, QUIET>(b, moves, checkInfo, double_push);
     }
 
-    // Promotion moves
-    Bitboard single_push_promo      = shift<FWD>(promo_pawns) & empty & checkInfo.must_cover;
-    Bitboard right_capture_promo    = shift<FWD_RIGHT>(promo_pawns) & enemy_pieces & checkInfo.must_cover;
-    Bitboard left_capture_promo     = shift<FWD_LEFT>(promo_pawns) & enemy_pieces & checkInfo.must_cover;
+    if constexpr (M == CAPTURE_ONLY || M == ALL) {
+        Bitboard enemy_pieces = b.colors[C ^ 1];
 
-    // Encode and add moves to vector
+        Bitboard right_capture_promo    = shift<FWD_RIGHT>(promo_pawns) & enemy_pieces & checkInfo.must_cover;
+        Bitboard left_capture_promo     = shift<FWD_LEFT>(promo_pawns) & enemy_pieces & checkInfo.must_cover;
 
-    // Promotions
-    encode_pawn_moves<C, FWD_RIGHT, CAPTURE, true>(b, moves, checkInfo, right_capture_promo);
-    encode_pawn_moves<C, FWD_LEFT, CAPTURE, true>(b, moves, checkInfo, left_capture_promo);
-    encode_pawn_moves<C, FWD, QUIET, true>(b, moves, checkInfo, single_push_promo);
+        Bitboard right_capture          = shift<FWD_RIGHT>(non_promo_pawns) & enemy_pieces & checkInfo.must_cover;
+        Bitboard left_capture           = shift<FWD_LEFT>(non_promo_pawns) & enemy_pieces & checkInfo.must_cover;
 
-    // Regular pushes/captures
-    encode_pawn_moves<C, FWD_RIGHT, CAPTURE>(b, moves, checkInfo, right_capture);
-    encode_pawn_moves<C, FWD_LEFT, CAPTURE>(b, moves, checkInfo, left_capture);
-    encode_pawn_moves<C, FWD, QUIET>(b, moves, checkInfo, single_push);
-    encode_pawn_moves<C, FWD_FWD, QUIET>(b, moves, checkInfo, double_push);
+        Bitboard right_en_passant = 0;
+        Bitboard left_en_passant = 0;
+        if (b.en_passant_target != NO_SQUARE) {
+            Bitboard en_passant_target_mask = get_mask(b.en_passant_target);
+            right_en_passant = shift<FWD_RIGHT>(non_promo_pawns) & en_passant_target_mask;
+            left_en_passant  = shift<FWD_LEFT>(non_promo_pawns) & en_passant_target_mask;
+        }
 
-    // En passant
-    encode_pawn_moves<C, FWD_RIGHT, CAPTURE, false, true>(b, moves, checkInfo, right_en_passant);
-    encode_pawn_moves<C, FWD_LEFT, CAPTURE, false, true>(b, moves, checkInfo, left_en_passant);
+        encode_pawn_moves<C, FWD_RIGHT, CAPTURE, true>(b, moves, checkInfo, right_capture_promo);
+        encode_pawn_moves<C, FWD_LEFT,  CAPTURE, true>(b, moves, checkInfo, left_capture_promo);
+
+        encode_pawn_moves<C, FWD_RIGHT, CAPTURE>(b, moves, checkInfo, right_capture);
+        encode_pawn_moves<C, FWD_LEFT,  CAPTURE>(b, moves, checkInfo, left_capture);
+
+        encode_pawn_moves<C, FWD_RIGHT, CAPTURE, false, true>(b, moves, checkInfo, right_en_passant);
+        encode_pawn_moves<C, FWD_LEFT,  CAPTURE, false, true>(b, moves, checkInfo, left_en_passant);
+    }
 }
 
 template <Color C>
@@ -243,32 +256,52 @@ static inline void generate_castling_moves(Board &b, MoveList& moves, CheckInfo&
     }
 }
 
-template <Color C>
-static inline void _generate_moves(Board& b, MoveList& moves) {
-    CheckInfo checkInfo;
-    checkInfo.compute_check_info<C>(b);
-
+template <Color C, MoveGenMode M>
+void generate_moves_impl(Board& b, MoveList& moves, CheckInfo& checkInfo) {
+    // Double check; only king moves are valid (noncastling)
     if (std::popcount(checkInfo.checkers) == 2) {
-        // Double check; only king moves are valid (noncastling)
-        generate_piece_moves<KING>(b, moves, checkInfo);
+        generate_piece_moves<KING, M>(b, moves, checkInfo);
         return;
     }
 
-    generate_pawn_moves<C>(b, moves, checkInfo);
-    generate_castling_moves<C>(b, moves, checkInfo);
+    // Only generate castling moves when generating quiet moves
+    if constexpr (M == QUIET_ONLY || M == ALL) {
+        generate_castling_moves<C>(b, moves, checkInfo);
+    }
 
-    generate_piece_moves<BISHOP>(b, moves, checkInfo);
-    generate_piece_moves<KNIGHT>(b, moves, checkInfo);
-    generate_piece_moves<ROOK>  (b, moves, checkInfo);
-    generate_piece_moves<QUEEN> (b, moves, checkInfo);
-    generate_piece_moves<KING>  (b, moves, checkInfo);
+    generate_pawn_moves<C, M>(b, moves, checkInfo);
+
+    generate_piece_moves<BISHOP, M>(b, moves, checkInfo);
+    generate_piece_moves<KNIGHT, M>(b, moves, checkInfo);
+    generate_piece_moves<ROOK,   M>(b, moves, checkInfo);
+    generate_piece_moves<QUEEN,  M>(b, moves, checkInfo);
+    generate_piece_moves<KING,   M>(b, moves, checkInfo);
 }
 
+template <MoveGenMode M>
 MoveList generate_moves(Board &b) {
     MoveList moves;
+    CheckInfo checkInfo;
 
-    if (b.to_move == WHITE) _generate_moves<WHITE>(b, moves);
-    else                    _generate_moves<BLACK>(b, moves);
+    if (b.to_move == WHITE) {
+        checkInfo.compute_check_info<WHITE>(b);
+        generate_moves_impl<WHITE, M>(b, moves, checkInfo);
+    } else {
+        checkInfo.compute_check_info<BLACK>(b);
+        generate_moves_impl<BLACK, M>(b, moves, checkInfo);
+    }
 
     return moves;
 }
+
+// Explicit template instantiations
+template MoveList generate_moves<ALL>(Board&);
+template MoveList generate_moves<QUIET_ONLY>(Board&);
+template MoveList generate_moves<CAPTURE_ONLY>(Board&);
+
+template void generate_moves_impl<WHITE, ALL>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<WHITE, QUIET_ONLY>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<WHITE, CAPTURE_ONLY>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<BLACK, ALL>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<BLACK, QUIET_ONLY>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<BLACK, CAPTURE_ONLY>(Board&, MoveList&, CheckInfo&);

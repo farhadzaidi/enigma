@@ -9,16 +9,6 @@
 
 static SearchGlobals search_globals;
 
-
-/* Move Ordering Hierarchy
-1. TT move / PV move
-2. Captures (scored by MVV-LVA)
-3. Killer Moves (cached)
-4. Quiet Moves (use history heuristic)
-5. Evasions
-6. Bad Captures (SEE < 0)
-*/
-
 template <SearchMode SM>
 static inline bool should_stop_search() {
     // Stop when the search interrupted flag is set or if stop is requested via UCI
@@ -53,7 +43,7 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
         return evaluate(b);
     }
 
-    MoveList moves = generate_moves(b);
+    MoveList moves = generate_moves<ALL>(b);
 
     // Side to move has no remaining moves
     if (moves.size == 0) {
@@ -101,7 +91,7 @@ static Move search_at_depth(Board& b, int depth) {
     // for them than their lower bound)
     int beta = MAX_SCORE;
 
-    MoveList moves = generate_moves(b);
+    MoveList moves = generate_moves<ALL>(b);
     for (Move move : moves) {
         b.make_move(move);
         int score = -negamax<SM>(b, depth - 1, -beta, -alpha);

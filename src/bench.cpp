@@ -33,7 +33,7 @@ static inline std::vector<std::string> collect_lines(bool fast) {
     return buffer;
 }
 
-void run_bench(bool verbose, bool fast) {
+void run_bench(bool verbose, bool fast, bool phased) {
     std::clog << "Running bench...\n";
     Board b;
     auto lines = collect_lines(fast);
@@ -45,7 +45,7 @@ void run_bench(bool verbose, bool fast) {
 
         b.reset();
         b.load_from_fen(fen);
-        uint64_t nodes = perft<false>(b, depth);
+        uint64_t nodes = phased ? perft_phased(b, depth) : perft<false>(b, depth);
         total_nodes += nodes;
 
         if (nodes != expected_nodes) {

@@ -28,19 +28,22 @@ int main(int argc, char* argv[]) {
     if (cmd == "bench") {
         bool verbose = false;
         bool fast = false;
+        bool phased = false;
 
         for (int i = 1; i < args.size(); i++) {
             if (args[i] == "--verbose"){
                 verbose = true;
             } else if (args[i] == "--fast") {
                 fast = true;
+            } else if (args[i] == "--phased") {
+                phased = true;
             } else {
                 std::clog << "Error: Unknown option for bench '" << args[i] << "'\n";
                 return EXIT_FAILURE;
             }
         }
 
-        run_bench(verbose, fast);
+        run_bench(verbose, fast, phased);
     } 
     
     // ### PERFT - Test move generation with any positon and FEN
