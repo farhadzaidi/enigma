@@ -10,6 +10,7 @@
 
 struct Move {
     uint16_t move;
+    bool is_killer = false;
 
     constexpr Move() : move(0) {}
 
@@ -31,3 +32,6 @@ struct Move {
 
 // Null move sentinel value
 constexpr Move NULL_MOVE = Move();
+
+// Killer move type definition
+using KillerMove = std::array<Move, MAX_PLY>;

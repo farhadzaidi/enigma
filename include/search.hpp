@@ -1,23 +1,7 @@
 #pragma once
 
-#include <cstdint>
-
-#include "types.hpp"
 #include "board.hpp"
-#include "move.hpp"
-
-struct SearchLimits {
-    int time;
-    uint64_t nodes;
-    int depth;
-};
-
-struct SearchGlobals {
-    SearchLimits limits;
-    std::chrono::steady_clock::time_point deadline;
-    uint64_t nodes = 0;
-    bool search_interrupted = false;
-};
+#include "searchstate.hpp"
 
 template <SearchMode SM>
 Move search(Board& b, const SearchLimits& limits);

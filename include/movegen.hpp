@@ -13,13 +13,17 @@ struct MoveList {
     std::array<Move, MAX_MOVES> moves;
     int size = 0;
 
-    void add_move(Move move) {
+    void add(Move move) {
         moves[size] = move;
         size++;
     }
 
-    void clear() {
-        size = 0;
+    Move pop() {
+        if (size == 0) return NULL_MOVE;
+
+        Move to_return = moves[size - 1];
+        size--;
+        return to_return;
     }
 
     // Iterator support
@@ -27,6 +31,15 @@ struct MoveList {
     Move* end() { return moves.data() + size; }
     const Move* begin() const { return moves.data(); }
     const Move* end() const { return moves.data() + size; }
+
+    // Enable indexing using brackets
+    Move& operator[](int index) {
+        return moves[index];
+    }
+
+    const Move& operator[](int index) const {
+        return moves[index];
+    }
 };
 
 // Expose this function since it's used in board.cpp as well

@@ -41,6 +41,7 @@ constexpr int SEARCH_INTERRUPTED =  0;
 // --- Type Definitions ---
 
 using Bitboard          = uint64_t;
+using MoveScore         = uint32_t;
 using MoveType          = uint16_t;
 using MoveFlag          = uint16_t;
 using Square            = uint8_t;
@@ -50,10 +51,18 @@ using CastlingRights    = uint8_t;
 using Rank              = uint8_t;
 using File              = uint8_t;
 using CastleType        = uint8_t;
+using MoveSelectorPhase = uint8_t;
 using Direction         = int;
 using SearchMode        = int;
-using MoveSelectorPhase = int;
 using MoveGenMode       = int;
+
+// --- History Table Type Definitions ---
+
+// color_piece_to[color][piece][to]
+using ColorPieceToHistory = std::array<std::array<std::array<MoveScore, NUM_SQUARES>, NUM_PIECES>, NUM_COLORS>;
+
+// from_to[from][to]
+using FromToHistory = std::array<std::array<MoveScore, NUM_SQUARES>, NUM_SQUARES>;
 
 // --- Enums ---
 

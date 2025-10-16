@@ -66,7 +66,7 @@ static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& ch
             Bitboard quiet_moves = attack_mask & empty;
             while (quiet_moves) {
                 Square to = pop_lsb(quiet_moves);
-                moves.add_move(Move(from, to, QUIET, NORMAL));
+                moves.add(Move(from, to, QUIET, NORMAL));
             }
         }
 
@@ -85,7 +85,7 @@ static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& ch
                     if (is_attacked) continue;
                 }
 
-                moves.add_move(Move(from, to, CAPTURE, NORMAL));
+                moves.add(Move(from, to, CAPTURE, NORMAL));
             }
         }
     }
@@ -110,10 +110,10 @@ static inline void encode_pawn_moves(
         }
 
         if constexpr (IS_PROMOTION) {
-            moves.add_move(Move(from, to, MT, PROMOTION_QUEEN));
-            moves.add_move(Move(from, to, MT, PROMOTION_ROOK));
-            moves.add_move(Move(from, to, MT, PROMOTION_BISHOP));
-            moves.add_move(Move(from, to, MT, PROMOTION_KNIGHT));
+            moves.add(Move(from, to, MT, PROMOTION_QUEEN));
+            moves.add(Move(from, to, MT, PROMOTION_ROOK));
+            moves.add(Move(from, to, MT, PROMOTION_BISHOP));
+            moves.add(Move(from, to, MT, PROMOTION_KNIGHT));
         } else {
             if constexpr (IS_EN_PASSANT) {
                 // Handle en passant edge cases
@@ -146,9 +146,9 @@ static inline void encode_pawn_moves(
                 b.occupied ^= from_mask;
 
                 if (is_attacked) return;
-                moves.add_move(Move(from, to, MT, EN_PASSANT));
+                moves.add(Move(from, to, MT, EN_PASSANT));
             } else {
-                moves.add_move(Move(from, to, MT, NORMAL));
+                moves.add(Move(from, to, MT, NORMAL));
             }
         }
     }
@@ -243,7 +243,7 @@ static inline void generate_castling_moves(Board &b, MoveList& moves, CheckInfo&
         && ((b.occupied & SHORT_CASTLE_PATH) == 0)  // Path is clear
         && ((king_short_castle_path & checkInfo.unsafe) == 0) // King doesn't pass thru check
     ) {
-        moves.add_move(Move(KING_SQUARE, SHORT_TO, QUIET, CASTLE));
+        moves.add(Move(KING_SQUARE, SHORT_TO, QUIET, CASTLE));
     } 
     
     // Long castle
@@ -252,7 +252,7 @@ static inline void generate_castling_moves(Board &b, MoveList& moves, CheckInfo&
         && ((b.occupied & LONG_CASTLE_PATH) == 0)
         && ((king_long_castle_path & checkInfo.unsafe) == 0)
     ) {
-        moves.add_move(Move(KING_SQUARE, LONG_TO, QUIET, CASTLE));
+        moves.add(Move(KING_SQUARE, LONG_TO, QUIET, CASTLE));
     }
 }
 

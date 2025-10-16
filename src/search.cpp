@@ -7,21 +7,21 @@
 #include "movegen.hpp"
 #include "evaluate.hpp"
 
-static SearchGlobals search_globals;
+static SearchState ss;
 
 template <SearchMode SM>
 static inline bool should_stop_search() {
     // Stop when the search interrupted flag is set or if stop is requested via UCI
-    if (search_globals.search_interrupted || stop_requested) {
+    if (ss.search_interrupted || stop_requested) {
         return true;
     }
 
     if constexpr (SM == TIME) {
         // Check if the search has exceeded its time limit (if search mode is TIME)
-        return std::chrono::steady_clock::now() >= search_globals.deadline;
+        return std::chrono::steady_clock::now() >= ss.deadline;
     } else if constexpr (SM == NODES) {
         // Check if search has exceeded the number of nodes to search (if search mode is NODE)
-        return search_globals.nodes >= search_globals.limits.nodes;
+        return ss.nodes >= ss.limits.nodes;
     } else {
         // In all other cases, we shouldn't stop the search
         // INFINITE = keep going forever (or until stop flag)
@@ -33,11 +33,11 @@ static inline bool should_stop_search() {
 template <SearchMode SM>
 static inline int negamax(Board& b, int depth, int alpha, int beta) {
     if (should_stop_search<SM>()) {
-        search_globals.search_interrupted = true;
+        ss.search_interrupted = true;
         return SEARCH_INTERRUPTED; // Dummy value (for semantics) - will not be used
     }
 
-    search_globals.nodes++;
+    ss.nodes++;
 
     if (depth == 0) {
         return evaluate(b);
@@ -64,7 +64,7 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
         b.unmake_move(move);
 
         // Discard the score and return early if the search has been interrupted
-        if (search_globals.search_interrupted) {
+        if (ss.search_interrupted) {
             return SEARCH_INTERRUPTED;
         }
 
@@ -99,7 +99,7 @@ static Move search_at_depth(Board& b, int depth) {
 
         // Same here - return early if the search is interrutpted, otherwise negate
         // the score to process it for the parent
-        if (search_globals.search_interrupted) {
+        if (ss.search_interrupted) {
             return NULL_MOVE;
         }
 
@@ -126,13 +126,13 @@ static Move search_at_depth(Board& b, int depth) {
 // Initializes search globals and performs iterative deepening search
 template <SearchMode SM>
 Move search(Board& b, const SearchLimits& limits) {
-    search_globals.limits = limits;
-    search_globals.nodes = 0;
-    search_globals.search_interrupted = false;
+    ss.limits = limits;
+    ss.nodes = 0;
+    ss.search_interrupted = false;
 
     // Calculate search deadline based on time limit if search mode is TIME
     if constexpr (SM == TIME) {
-        search_globals.deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(limits.time);
+        ss.deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(limits.time);
     }
 
     int depth = 1;
@@ -142,7 +142,7 @@ Move search(Board& b, const SearchLimits& limits) {
     while (!should_stop_search<SM>()) {
         // Check if we've hit the max depth if search mode is DEPTH
         if constexpr (SM == DEPTH) {
-            if (depth > search_globals.limits.depth) break;
+            if (depth > ss.limits.depth) break;
         }
 
         Move best_move_at_depth = search_at_depth<SM>(b, depth);
