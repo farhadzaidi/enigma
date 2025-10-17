@@ -5,6 +5,7 @@
 #include <bit>
 #include <filesystem>
 #include <fstream>
+#include <unordered_map>
 
 #ifdef __BMI2__
 #include <immintrin.h>
@@ -14,6 +15,11 @@
 #include "move.hpp"
 
 class Board;
+
+struct PerftEpdResult {
+    std::string fen;
+    std::unordered_map<int, uint64_t> depth_nodes;
+};
 
 // Parsing
 
@@ -26,11 +32,12 @@ Square uci_to_index(const std::string& square);
 std::string index_to_uci(Square square);
 Move encode_move_from_uci(const Board& b, const std::string& uci_move);
 std::string decode_move_to_uci(Move move);
+Move parse_move_from_san(Board& b, const std::string& san);
 
 // File Utilites
 
 void read_file(std::vector<std::string>& buffer, std::filesystem::path file_path, int max_lines = -1);
-std::tuple<std::string, int, uint64_t> parse_epd_line(std::string line);
+PerftEpdResult parse_perft_epd_line(std::string line);
 
 // Bitboards
 

@@ -41,24 +41,28 @@ void run_bench(bool verbose, bool fast, bool phased) {
 
     auto start = std::chrono::high_resolution_clock::now();
     for (const auto& line : lines) {
-        auto [fen, depth, expected_nodes] = parse_epd_line(line);
+        auto result = parse_perft_epd_line(line);
 
         b.reset();
-        b.load_from_fen(fen);
-        uint64_t nodes = phased ? perft_phased(b, depth) : perft<false>(b, depth);
-        total_nodes += nodes;
+        b.load_from_fen(result.fen);
 
-        if (nodes != expected_nodes) {
-            std::clog << "\n[FAILURE] FEN: " << fen << "\n";
-            std::clog << "At depth " << depth << ", expected " << expected_nodes << " nodes, but generated " << nodes << "\n";
-            return;
-        } else if (verbose) {
-            std::clog << "\n[SUCCESS] FEN: " << fen << "\n";
-            std::clog << "At depth " << depth << ", generated " << nodes << " nodes\n";
+        // Loop through all depth/node pairs and test each
+        for (const auto& [depth, expected_nodes] : result.depth_nodes) {
+            uint64_t nodes = phased ? perft_phased(b, depth) : perft<false>(b, depth);
+            total_nodes += nodes;
+
+            if (nodes != expected_nodes) {
+                std::clog << "\n[FAILURE] FEN: " << result.fen << "\n";
+                std::clog << "At depth " << depth << ", expected " << expected_nodes << " nodes, but generated " << nodes << "\n";
+                return;
+            } else if (verbose) {
+                std::clog << "\n[SUCCESS] FEN: " << result.fen << "\n";
+                std::clog << "At depth " << depth << ", generated " << nodes << " nodes\n";
+            }
         }
     }
     auto end = std::chrono::high_resolution_clock::now();
-    
+
     double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(end - start).count();
     std::clog << "[SUCCESS] Bench completed in " << std::fixed << std::setprecision(1) << seconds << " seconds\n";
     std::clog << "Evaluated " << lines.size() << " positions, generating " << total_nodes << " total nodes\n";
