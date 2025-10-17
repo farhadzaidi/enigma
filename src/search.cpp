@@ -150,6 +150,8 @@ Move search(Board& b, const SearchLimits& limits) {
             best_move = best_move_at_depth;
         }
 
+        if (ss.search_interrupted) break;
+
         depth++;
     }
 

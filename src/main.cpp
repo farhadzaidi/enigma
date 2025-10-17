@@ -9,6 +9,7 @@
 #include "perft.hpp"
 #include "utils.hpp"
 #include "test.hpp"
+#include "search.hpp"
 
 int main(int argc, char* argv[]) {
     // Extract command line arguments
@@ -26,31 +27,33 @@ int main(int argc, char* argv[]) {
 
     // ### BENCH - Comprehensive move generation test suite
     if (cmd == "bench") {
-        bool verbose = false;
-        bool fast = false;
-        bool phased = false;
+        BenchFlags flags = {false, false, false, false, false};
 
         for (int i = 1; i < args.size(); i++) {
             if (args[i] == "--verbose"){
-                verbose = true;
+                flags.verbose = true;
             } else if (args[i] == "--fast") {
-                fast = true;
+                flags.fast = true;
             } else if (args[i] == "--phased") {
-                phased = true;
+                flags.phased = true;
+            } else if (args[i] == "--movegen") {
+                flags.movegen_only = true;
+            } else if (args[i] == "--engine") {
+                flags.engine_only = true;
             } else {
                 std::clog << "Error: Unknown option for bench '" << args[i] << "'\n";
                 return EXIT_FAILURE;
             }
         }
 
-        run_bench(verbose, fast, phased);
+        run_bench(flags);
     } 
     
-    // ### PERFT - Test move generation with any positon and FEN
-    else if (cmd == "perft") {
+    // ### PERFT / SEARCH - Test move generation or search a position
+    else if (cmd == "perft" || cmd == "search") {
         // Require depth
         if (args.size() == 1) {
-            std::clog << "Error: Please specify perft depth\n";
+            std::clog << "Error: Please specify depth\n";
             return EXIT_FAILURE;
         }
 
@@ -62,12 +65,26 @@ int main(int argc, char* argv[]) {
         }
         int depth = std::stoi(depth_str);
 
-        // TODO - parse FEN
-
-        // Load start position on board and perform perft
+        // Parse optional FEN
         Board b;
-        b.load_from_fen();
-        perft<true>(b, depth);
+        if (args.size() >= 3) {
+            // FEN string is all remaining arguments joined by spaces
+            std::string fen;
+            for (int i = 2; i < args.size(); i++) {
+                if (i > 2) fen += " ";
+                fen += args[i];
+            }
+            b.load_from_fen(fen);
+        } else {
+            b.load_from_fen();
+        }
+
+        if (cmd == "perft") {
+            perft<true>(b, depth);
+        } else {
+            Move best_move = search_depth(b, depth);
+            std::cout << "Best move: " << decode_move_to_uci(best_move) << "\n";
+        }
     } 
     
     // ### TEST - Run test suite

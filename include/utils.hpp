@@ -21,6 +21,11 @@ struct PerftEpdResult {
     std::unordered_map<int, uint64_t> depth_nodes;
 };
 
+struct EngineEpdResult {
+    std::string fen;
+    std::string best_move_san;
+};
+
 // Parsing
 
 constexpr Square get_square(int rank, int file) { return rank * BOARD_SIZE + file; }
@@ -38,6 +43,7 @@ Move parse_move_from_san(Board& b, const std::string& san);
 
 void read_file(std::vector<std::string>& buffer, std::filesystem::path file_path, int max_lines = -1);
 PerftEpdResult parse_perft_epd_line(std::string line);
+EngineEpdResult parse_engine_epd_line(std::string line);
 
 // Bitboards
 

@@ -398,3 +398,33 @@ PerftEpdResult parse_perft_epd_line(std::string line) {
 
     return {fen, depth_nodes};
 }
+
+// Parses engine benchmark EPD line in the form [FEN]; bm [MOVE]; ...
+// e.g. rnbqkb1r/p3pppp/1p6/2ppP3/3N4/2P5/PPP1QPPP/R1B1KB1R w KQkq - ; bm e6; id BK.04
+EngineEpdResult parse_engine_epd_line(std::string line) {
+    // Find FEN (everything before "; bm ")
+    auto bm_pos = line.find("; bm ");
+    if (bm_pos == std::string::npos) {
+        return {"", ""};  // Invalid format
+    }
+
+    std::string fen = line.substr(0, bm_pos);
+
+    // Find SAN move (between "bm " and next ";")
+    size_t san_start = bm_pos + 5;  // length of "; bm "
+    size_t san_end = line.find(';', san_start);
+
+    std::string san_part;
+    if (san_end != std::string::npos) {
+        san_part = line.substr(san_start, san_end - san_start);
+    } else {
+        san_part = line.substr(san_start);
+    }
+
+    // Extract first move (in case there are multiple best moves separated by space)
+    std::istringstream iss(san_part);
+    std::string san;
+    iss >> san;
+
+    return {fen, san};
+}

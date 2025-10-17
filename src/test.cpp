@@ -8,10 +8,6 @@
 #include "board.hpp"
 #include "utils.hpp"
 
-const std::filesystem::path SINGLE_CHECK_EPD = "single_check.epd";
-const std::filesystem::path DOUBLE_CHECK_EPD = "double_check.epd";
-const std::filesystem::path NOT_IN_CHECK_FEN = "not_in_check.fen";
-
 struct SanTestCase {
     std::string fen;
     std::string san;
@@ -21,8 +17,8 @@ struct SanTestCase {
 static bool test_in_check(Board& b) {
     // Test positions that should be in check
     std::vector<std::string> in_check_buffer;
-    read_file(in_check_buffer, FEN_DIR / SINGLE_CHECK_EPD);
-    read_file(in_check_buffer, FEN_DIR / DOUBLE_CHECK_EPD);
+    read_file(in_check_buffer, SINGLE_CHECK_EPD);
+    read_file(in_check_buffer, DOUBLE_CHECK_EPD);
     for (const auto& line : in_check_buffer) {
         auto result = parse_perft_epd_line(line);
 
@@ -41,7 +37,7 @@ static bool test_in_check(Board& b) {
 
     // Test positions that should not be in check
     std::vector<std::string> not_in_check_buffer;
-    read_file(not_in_check_buffer, FEN_DIR / NOT_IN_CHECK_FEN);
+    read_file(not_in_check_buffer, NOT_IN_CHECK_FEN);
     for (const auto& fen : not_in_check_buffer) {
         // Load position
         b.reset();

@@ -6,6 +6,7 @@
 #include <atomic>
 #include <limits>
 #include <filesystem>
+#include <limits>
 
 // This is really just to silence the IDE warning since PROJECT_ROOT 
 // should be defined in CMakeLists.txt
@@ -16,6 +17,15 @@
 // --- Globals ---
 extern std::atomic<bool> stop_requested;
 inline std::filesystem::path FEN_DIR = std::filesystem::path(PROJECT_ROOT) / "fen";
+
+// --- FEN/EPD Files ---
+inline const std::filesystem::path SINGLE_CHECK_EPD = FEN_DIR / "single_check.epd";
+inline const std::filesystem::path DOUBLE_CHECK_EPD = FEN_DIR / "double_check.epd";
+inline const std::filesystem::path NOT_IN_CHECK_FEN = FEN_DIR / "not_in_check.fen";
+inline const std::filesystem::path MIXED_EPD = FEN_DIR / "mixed.epd";
+inline const std::filesystem::path CPW_EPD = FEN_DIR / "cpw.epd";
+inline const std::filesystem::path EN_PASSANT_EPD = FEN_DIR / "en_passant.epd";
+inline const std::filesystem::path ENGINE_EPD = FEN_DIR / "engine.epd";
 
 // --- Board Constants ---
 
@@ -32,11 +42,11 @@ constexpr int MAX_PLY   = 256;
 // Upper bound for the maximum number of moves we can generate at a given depth
 constexpr int MAX_MOVES = 256;
 
-constexpr int MAX_SCORE          =  999999;
-constexpr int MIN_SCORE          = -999999;
-constexpr int CHECKMATE_SCORE    =  100000;
+constexpr int MAX_SCORE          =  30'000;
+constexpr int MIN_SCORE          = -MAX_SCORE;
+constexpr int CHECKMATE_SCORE    =  32000;
 constexpr int STALEMATE_SCORE    =  0;
-constexpr int SEARCH_INTERRUPTED =  0;
+constexpr int SEARCH_INTERRUPTED =  std::numeric_limits<int>::min() / 2;
 
 // --- Type Definitions ---
 
