@@ -100,7 +100,7 @@ static inline int quiescence_search(Board& b, int alpha, int beta) {
     }
 
     // Search captures only for q search
-    MoveList moves = generate_moves<CAPTURE>(b);
+    MoveList moves = generate_moves<CAPTURE_ONLY>(b);
     if (moves.is_empty()) {
         return alpha;
     }
