@@ -5,8 +5,8 @@
 #include "board.hpp"
 #include "utils.hpp"
 #include "move.hpp"
-#include "movegen.hpp"
-#include "checkinfo.hpp"
+#include "move_generator.hpp"
+#include "check_info.hpp"
 
 template<bool Root>
 inline uint64_t perft(Board &b, int depth) {

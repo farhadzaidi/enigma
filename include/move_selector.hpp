@@ -4,9 +4,9 @@
 
 #include "types.hpp"
 #include "move.hpp"
-#include "checkinfo.hpp"
-#include "movegen.hpp"
-#include "searchstate.hpp"
+#include "check_info.hpp"
+#include "move_generator.hpp"
+#include "search_state.hpp"
 
 // Indexed like CAPTURE_SCORE[attacker][victim]
 // Incentivizes capturing high value pieces with low value pieces

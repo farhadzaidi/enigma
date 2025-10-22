@@ -4,7 +4,7 @@
 #include "types.hpp"
 #include "search.hpp"
 #include "board.hpp"
-#include "movegen.hpp"
+#include "move_generator.hpp"
 #include "evaluate.hpp"
 
 /*

@@ -7,7 +7,7 @@
 #include "types.hpp"
 #include "move.hpp"
 #include "board.hpp"
-#include "movegen.hpp"
+#include "move_generator.hpp"
 
 bool is_pos_int(const std::string& s) {
     if (s.empty()) return false;

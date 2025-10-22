@@ -1,9 +1,9 @@
-#include "movegen.hpp"
+#include "move_generator.hpp"
 #include "types.hpp"
 #include "utils.hpp"
 #include "precompute.hpp"
 #include "board.hpp"
-#include "checkinfo.hpp"
+#include "check_info.hpp"
 
 template <Direction D>
 static inline bool is_attacked_by_slider(const Board &b, Square sq) {

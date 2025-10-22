@@ -8,7 +8,7 @@
 #include "types.hpp"
 #include "move.hpp"
 #include "utils.hpp"
-#include "movegen.hpp"
+#include "move_generator.hpp"
 
 Board::Board() {
     reset();

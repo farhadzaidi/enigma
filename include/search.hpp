@@ -1,7 +1,7 @@
 #pragma once
 
 #include "board.hpp"
-#include "searchstate.hpp"
+#include "search_state.hpp"
 
 template <SearchMode SM>
 Move search(Board& b, const SearchLimits& limits);
