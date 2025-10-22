@@ -27,7 +27,7 @@ struct MoveList {
     }
 
     bool is_empty() {
-        return moves.size() == 0;
+        return size == 0;
     }
 
     // Iterator support

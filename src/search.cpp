@@ -66,12 +66,15 @@ static inline int score_move(Move m) {
     return m.is_promotion() ? 3 : m.type() == CAPTURE ? 2 : 1;
 }
 
+template <bool UsePrevBestMove>
 static inline void order_moves(MoveList& moves, Move prev_best_move = NULL_MOVE) {
     // Prioritize promotions, captures, then quiet moves (in that order)
     std::sort(moves.begin(), moves.end(), [prev_best_move](const Move& m1, const Move& m2) {
         // Always try the previous best move first if we have it
-        if (m1 == prev_best_move) return true;
-        if (m2 == prev_best_move) return false;
+        if constexpr (UsePrevBestMove) {
+            if (m1 == prev_best_move) return true;
+            if (m2 == prev_best_move) return false;
+        }
 
         return score_move(m1) > score_move(m2);
     });
@@ -97,7 +100,7 @@ static inline int quiescence_search(Board& b, int alpha, int beta) {
     }
 
     // Search captures only for q search
-    MoveList moves = generate_moves<CAPTURES>(b);
+    MoveList moves = generate_moves<CAPTURE>(b);
     if (moves.is_empty()) {
         return alpha;
     }
@@ -130,11 +133,11 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
     }
 
     if (depth == 0) {
-        return evaluate(b);
+        return quiescence_search<SM>(b, alpha, beta);
     }
 
     MoveList moves = generate_moves<ALL>(b);
-    order_moves(moves);
+    order_moves<false>(moves);
 
     // Side to move has no remaining moves
     if (moves.is_empty()) {
@@ -183,7 +186,7 @@ static Move search_at_depth(Board& b, int depth, Move prev_best_move) {
     int beta = MAX_SCORE;
 
     MoveList moves = generate_moves<ALL>(b);
-    order_moves(moves, prev_best_move);
+    order_moves<true>(moves, prev_best_move);
 
     for (Move move : moves) {
         b.make_move(move);
