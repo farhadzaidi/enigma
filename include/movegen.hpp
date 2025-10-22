@@ -26,6 +26,10 @@ struct MoveList {
         return to_return;
     }
 
+    bool is_empty() {
+        return moves.size() == 0;
+    }
+
     // Iterator support
     Move* begin() { return moves.data(); }
     Move* end() { return moves.data() + size; }

@@ -7,7 +7,35 @@
 #include "movegen.hpp"
 #include "evaluate.hpp"
 
+/*
+Search
+4. TT + zobrist hashing
+5. Killer moves
+6. Principal variation search + aspiration windows
+7. Enhanced move ordering/move selector (MVV-LVA, history heuristic, phases, SEE)
+8. stackalloc instead of regular array in movelist to speed up movegen?
+9. null move pruning
+10. late move reductions
+11. opening book/endgame tablebase
+12. internal iterative deepening when no TT move
+
+Evaluation
+1. piece square tables
+2. king/pawn endgame tables
+3. check extensions
+4. pawn structure
+    - passed pawn bonus
+    - isolated pawn penalty
+    - stack pawn penalty
+    - pawn hash structure?
+5. king safety (pawn shield, open files, attackers near king)
+6. rooks on open files
+7. bishop pairs
+*/
+
 static SearchState ss;
+
+constexpr uint64_t TIME_CHECK_PERIOD_MASK = 2047;
 
 template <SearchMode SM>
 static inline bool should_stop_search() {
@@ -18,7 +46,11 @@ static inline bool should_stop_search() {
 
     if constexpr (SM == TIME) {
         // Check if the search has exceeded its time limit (if search mode is TIME)
-        return std::chrono::steady_clock::now() >= ss.deadline;
+        // Only check every N nodes (where N = TIME_CHECK_PERIOD_MASK + 1)
+        return (
+            (ss.nodes & TIME_CHECK_PERIOD_MASK) == 0
+            && std::chrono::steady_clock::now() >= ss.deadline
+        );
     } else if constexpr (SM == NODES) {
         // Check if search has exceeded the number of nodes to search (if search mode is NODE)
         return ss.nodes >= ss.limits.nodes;
@@ -30,23 +62,82 @@ static inline bool should_stop_search() {
     }
 }
 
+static inline int score_move(Move m) {
+    return m.is_promotion() ? 3 : m.type() == CAPTURE ? 2 : 1;
+}
+
+static inline void order_moves(MoveList& moves, Move prev_best_move = NULL_MOVE) {
+    // Prioritize promotions, captures, then quiet moves (in that order)
+    std::sort(moves.begin(), moves.end(), [prev_best_move](const Move& m1, const Move& m2) {
+        // Always try the previous best move first if we have it
+        if (m1 == prev_best_move) return true;
+        if (m2 == prev_best_move) return false;
+
+        return score_move(m1) > score_move(m2);
+    });
+}
+
+template <SearchMode SM>
+static inline int quiescence_search(Board& b, int alpha, int beta) {
+    ss.nodes++;
+
+    if (should_stop_search<SM>()) {
+        ss.search_interrupted = true;
+        return SEARCH_INTERRUPTED;
+    }
+
+    // First, we get a static evaluation of the position without any captures
+    // This serves as our baseline score to prevent forcing captures (in a position where all captures are bad)
+    // Additionally, we can stop the search early if the static evaluation is higher
+    // than the beta cutoff
+    int no_capture_score = evaluate(b);
+    alpha = std::max(alpha, no_capture_score);
+    if (alpha >= beta) {
+        return beta;
+    }
+
+    // Search captures only for q search
+    MoveList moves = generate_moves<CAPTURES>(b);
+    if (moves.is_empty()) {
+        return alpha;
+    }
+
+    for (Move move : moves) {
+        b.make_move(move);
+        int score = -quiescence_search<SM>(b, -beta, -alpha);
+        b.unmake_move(move);
+
+        if (ss.search_interrupted) {
+            return SEARCH_INTERRUPTED;
+        }
+
+        alpha = std::max(alpha, score);
+        if (alpha >= beta) {
+            break;
+        }
+    }
+
+    return alpha;
+}
+
 template <SearchMode SM>
 static inline int negamax(Board& b, int depth, int alpha, int beta) {
+    ss.nodes++;
+
     if (should_stop_search<SM>()) {
         ss.search_interrupted = true;
         return SEARCH_INTERRUPTED; // Dummy value (for semantics) - will not be used
     }
-
-    ss.nodes++;
 
     if (depth == 0) {
         return evaluate(b);
     }
 
     MoveList moves = generate_moves<ALL>(b);
+    order_moves(moves);
 
     // Side to move has no remaining moves
-    if (moves.size == 0) {
+    if (moves.is_empty()) {
         if (b.in_check()) {
             // If we're in check with no moves, then that is a checkmate
             // Add ply to the score to incentivize drawing out the game for the
@@ -80,7 +171,7 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
 
 // Searches all root moves at a given depth and returns the best move
 template <SearchMode SM>
-static Move search_at_depth(Board& b, int depth) {
+static Move search_at_depth(Board& b, int depth, Move prev_best_move) {
     Move best_move;
 
     // Alpha will serve as our lower bound (best score so far at this depth)
@@ -92,6 +183,8 @@ static Move search_at_depth(Board& b, int depth) {
     int beta = MAX_SCORE;
 
     MoveList moves = generate_moves<ALL>(b);
+    order_moves(moves, prev_best_move);
+
     for (Move move : moves) {
         b.make_move(move);
         int score = -negamax<SM>(b, depth - 1, -beta, -alpha);
@@ -145,7 +238,7 @@ Move search(Board& b, const SearchLimits& limits) {
             if (depth > ss.limits.depth) break;
         }
 
-        Move best_move_at_depth = search_at_depth<SM>(b, depth);
+        Move best_move_at_depth = search_at_depth<SM>(b, depth, best_move);
         if (best_move_at_depth != NULL_MOVE) {
             best_move = best_move_at_depth;
         }
