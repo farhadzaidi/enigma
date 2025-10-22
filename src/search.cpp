@@ -133,12 +133,11 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
     }
 
     if (depth == 0) {
-        // return quiescence_search<SM>(b, alpha, beta);
-        return evaluate(b);
+        return quiescence_search<SM>(b, alpha, beta);
     }
 
     MoveList moves = generate_moves<ALL>(b);
-    // order_moves<false>(moves);
+    order_moves<false>(moves);
 
     // Side to move has no remaining moves
     if (moves.is_empty()) {
@@ -187,7 +186,7 @@ static Move search_at_depth(Board& b, int depth, Move prev_best_move) {
     int beta = MAX_SCORE;
 
     MoveList moves = generate_moves<ALL>(b);
-    // order_moves<true>(moves, prev_best_move);
+    order_moves<true>(moves, prev_best_move);
 
     for (Move move : moves) {
         b.make_move(move);
