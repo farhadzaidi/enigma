@@ -53,7 +53,7 @@ inline uint64_t _perft_phased(Board &b, int depth) {
     checkInfo.compute_check_info<C>(b);
     
     generate_moves_impl<C, QUIET_ONLY>(b, quiet_moves, checkInfo);
-    generate_moves_impl<C, CAPTURE_ONLY>(b, captures, checkInfo);
+    generate_moves_impl<C, CAPTURES_AND_PROMOTIONS>(b, captures, checkInfo);
 
     if (depth == 1) {
         return quiet_moves.size + captures.size;

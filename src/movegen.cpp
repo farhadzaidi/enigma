@@ -70,7 +70,7 @@ static inline void generate_piece_moves(Board& b, MoveList& moves, CheckInfo& ch
             }
         }
 
-        if constexpr (M == CAPTURE_ONLY || M == ALL) {
+        if constexpr (M == CAPTURES_AND_PROMOTIONS || M == ALL) {
             Bitboard captures = attack_mask & them;
             while (captures) {
                 Square to = pop_lsb(captures);
@@ -167,30 +167,26 @@ static inline void generate_pawn_moves(Board& b, MoveList& moves, CheckInfo& che
 
     Bitboard pawns = b.pieces[C][PAWN];
     Bitboard promo_pawns = pawns & PROMO_MASK;
-    Bitboard non_promo_pawns = pawns & ~PROMO_MASK;
+    Bitboard non_promo_pawns = pawns & ~PROMO_MASK;\
+    Bitboard empty = ~b.occupied;
 
     if constexpr (M == QUIET_ONLY || M == ALL) {
-        Bitboard empty = ~b.occupied;
-
-        Bitboard push_promo  = shift<FWD>(promo_pawns) & empty & checkInfo.must_cover;
-
         Bitboard single_push = shift<FWD>(non_promo_pawns) & empty; 
         Bitboard double_push = shift<FWD>(single_push) & empty & DOUBLE_PUSH_MASK & checkInfo.must_cover;
 
         // Mask single push with must cover (we didn't do it earlier to generate double_push)
         single_push &= checkInfo.must_cover;
 
-        encode_pawn_moves<C, FWD, QUIET, true>(b, moves, checkInfo, push_promo);
-
         encode_pawn_moves<C, FWD, QUIET>(b, moves, checkInfo, single_push);
         encode_pawn_moves<C, FWD_FWD, QUIET>(b, moves, checkInfo, double_push);
     }
 
-    if constexpr (M == CAPTURE_ONLY || M == ALL) {
+    if constexpr (M == CAPTURES_AND_PROMOTIONS || M == ALL) {
         Bitboard enemy_pieces = b.colors[C ^ 1];
 
         Bitboard right_capture_promo    = shift<FWD_RIGHT>(promo_pawns) & enemy_pieces & checkInfo.must_cover;
         Bitboard left_capture_promo     = shift<FWD_LEFT>(promo_pawns) & enemy_pieces & checkInfo.must_cover;
+        Bitboard push_promo             = shift<FWD>(promo_pawns) & empty & checkInfo.must_cover;
 
         Bitboard right_capture          = shift<FWD_RIGHT>(non_promo_pawns) & enemy_pieces & checkInfo.must_cover;
         Bitboard left_capture           = shift<FWD_LEFT>(non_promo_pawns) & enemy_pieces & checkInfo.must_cover;
@@ -205,6 +201,7 @@ static inline void generate_pawn_moves(Board& b, MoveList& moves, CheckInfo& che
 
         encode_pawn_moves<C, FWD_RIGHT, CAPTURE, true>(b, moves, checkInfo, right_capture_promo);
         encode_pawn_moves<C, FWD_LEFT,  CAPTURE, true>(b, moves, checkInfo, left_capture_promo);
+        encode_pawn_moves<C, FWD,       QUIET,   true>(b, moves, checkInfo, push_promo);
 
         encode_pawn_moves<C, FWD_RIGHT, CAPTURE>(b, moves, checkInfo, right_capture);
         encode_pawn_moves<C, FWD_LEFT,  CAPTURE>(b, moves, checkInfo, left_capture);
@@ -297,11 +294,11 @@ MoveList generate_moves(Board &b) {
 // Explicit template instantiations
 template MoveList generate_moves<ALL>(Board&);
 template MoveList generate_moves<QUIET_ONLY>(Board&);
-template MoveList generate_moves<CAPTURE_ONLY>(Board&);
+template MoveList generate_moves<CAPTURES_AND_PROMOTIONS>(Board&);
 
 template void generate_moves_impl<WHITE, ALL>(Board&, MoveList&, CheckInfo&);
 template void generate_moves_impl<WHITE, QUIET_ONLY>(Board&, MoveList&, CheckInfo&);
-template void generate_moves_impl<WHITE, CAPTURE_ONLY>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<WHITE, CAPTURES_AND_PROMOTIONS>(Board&, MoveList&, CheckInfo&);
 template void generate_moves_impl<BLACK, ALL>(Board&, MoveList&, CheckInfo&);
 template void generate_moves_impl<BLACK, QUIET_ONLY>(Board&, MoveList&, CheckInfo&);
-template void generate_moves_impl<BLACK, CAPTURE_ONLY>(Board&, MoveList&, CheckInfo&);
+template void generate_moves_impl<BLACK, CAPTURES_AND_PROMOTIONS>(Board&, MoveList&, CheckInfo&);

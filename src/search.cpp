@@ -91,27 +91,27 @@ static inline int quiescence_search(Board& b, int alpha, int beta) {
 
     bool in_check = b.in_check();
 
-    // First, we get a static evaluation of the position without any captures
-    // This serves as our baseline score to prevent forcing captures (in a position where all captures are bad)
+    // First, we get a static evaluation of the position without searching any captures or promotions
+    // This serves as a baseline to prevent forcing bad tactical moves
     // Additionally, we can stop the search early if the static evaluation is higher than the beta cutoff
     // This can only be done if we're not in check - otherwise we MUST make a move
     if (!in_check) {
-        int no_capture_score = evaluate(b);
-        alpha = std::max(alpha, no_capture_score);
+        int static_eval = evaluate(b);
+        alpha = std::max(alpha, static_eval);
         if (alpha >= beta) {
             return beta;
         }
     }
 
-    // If we're not in check, we can only search captures. Otherwise, we must search all moves (evasions)
-    MoveList moves = in_check ? generate_moves<ALL>(b) : generate_moves<CAPTURE_ONLY>(b);
+    // If we're not in check, search captures and promotions. Otherwise, search all moves (evasions)
+    MoveList moves = in_check ? generate_moves<ALL>(b) : generate_moves<CAPTURES_AND_PROMOTIONS>(b);
     if (moves.is_empty()) {
         if (in_check) {
             // In check + no legal moves - checkmate
             return -CHECKMATE_SCORE + b.ply;
         }
 
-        // Searched all captures already, we can return now
+        // No captures or promotions available, return early
         return alpha;
     }
 

@@ -191,7 +191,7 @@ enum MoveSelectorPhaseEnum : MoveSelectorPhase {
 enum MoveGenModeEnum : MoveGenMode {
     ALL,
     QUIET_ONLY,
-    CAPTURE_ONLY
+    CAPTURES_AND_PROMOTIONS
 };
 
 // Ranks and Files

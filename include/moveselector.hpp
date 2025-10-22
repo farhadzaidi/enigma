@@ -93,8 +93,8 @@ struct MoveSelector {
 private:
 
     inline void generate_captures(Board& b) {
-        if (b.to_move == WHITE) generate_moves_impl<WHITE, CAPTURE_ONLY>(b, captures, checkInfo);
-        else                    generate_moves_impl<BLACK, CAPTURE_ONLY>(b, captures, checkInfo);
+        if (b.to_move == WHITE) generate_moves_impl<WHITE, CAPTURES_AND_PROMOTIONS>(b, captures, checkInfo);
+        else                    generate_moves_impl<BLACK, CAPTURES_AND_PROMOTIONS>(b, captures, checkInfo);
 
         sort_captures(b);
     }
