@@ -30,6 +30,7 @@ void Board::reset() {
     halfmoves = 0;
     fullmoves = 0;
     ply = 0;
+    zobrist_hash = 0;
 }
 
 void Board::load_from_fen(const std::string& fen) {
@@ -104,7 +105,12 @@ void Board::load_from_fen(const std::string& fen) {
     }
 
     // Side to move
-    this->to_move = to_move == "w" ? WHITE : BLACK;
+    if (to_move == "w") {
+        this->to_move = WHITE;
+    } else {
+        this->to_move = BLACK;
+        xor_side_to_move(); // Toggle side to move in hash if black
+    }
 
     // Castling rights
     for (char c : castling_rights) {
@@ -124,9 +130,13 @@ void Board::load_from_fen(const std::string& fen) {
         }
     }
 
+    // Update hash with castling rights
+    xor_castling_rights();
+
     // En passant target square
     if (en_passant_target != "-") {
         this->en_passant_target = uci_to_index(en_passant_target);
+        xor_en_passant();
     }
 
     // Halfmoves
@@ -316,6 +326,7 @@ void Board::make_move(Move move) {
 
     // Toggle side to move
     to_move ^= 1;
+    xor_side_to_move();
 
     // Update stacks and increment ply
     moves[ply] = move;
@@ -336,11 +347,19 @@ void Board::unmake_move(Move move) {
     // Decrement ply (simulate popping from top of moves and states stacks)
     ply -= 1;
 
+    // XOR out current state (EP target file and castling rights) from hash
+    xor_en_passant();
+    xor_castling_rights();
+
     // Restore state
     const State& prev_state = states[ply];
     en_passant_target = prev_state.en_passant_target;
     castling_rights = prev_state.castling_rights;
     halfmoves = prev_state.halfmoves;
+
+    // XOR in previous (restored) state into hash
+    xor_en_passant();
+    xor_castling_rights();
 
     // Fullmoves is only incremented if black moves, so we decrement it if we
     // are undoing a black move
@@ -403,6 +422,7 @@ void Board::unmake_move(Move move) {
 
     // Toggle side to move
     to_move ^= 1;
+    xor_side_to_move();
 }
 
 // Used to determine if the side to move is in check

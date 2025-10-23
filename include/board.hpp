@@ -7,6 +7,7 @@
 #include "move.hpp"
 #include "utils.hpp"
 #include "precompute.hpp"
+#include "transposition_table.hpp"
 
 // This struct contains important board state information which is useful for undoing moves
 // These attributes are overwritten when making a move and unable to be restored from the move encoding
@@ -44,6 +45,7 @@ public:
     PieceBitboards pieces;
     ColorBitboards colors;
     PieceMap piece_map;
+    uint64_t zobrist_hash;
 
     // Additional information 
     KingSquares king_squares;
@@ -95,6 +97,9 @@ private:
         if (piece == KING) {
             king_squares[color] = square;
         }
+
+        // XOR piece into hash
+        zobrist_hash ^= ZOBRIST_PIECES[color][piece][square];
     }
 
     inline void remove_piece(Color color, Piece piece, Square square) {
@@ -107,9 +112,34 @@ private:
 
         piece_map[square] = NO_PIECE;
         // No need to clear king square here as it will be updated in place_piece
+
+        // XOR piece out of hash
+        zobrist_hash ^= ZOBRIST_PIECES[color][piece][square];
+    }
+
+    inline void xor_en_passant() {
+        if (en_passant_target != NO_SQUARE) {
+            File ep_file = get_file(en_passant_target);
+            zobrist_hash ^= ZOBRIST_EN_PASSANT_TARGETS[ep_file];
+        }
+    }
+
+    inline void xor_castling_rights() {
+        zobrist_hash ^= ZOBRIST_CASTLING_RIGHTS[castling_rights];
+    }
+
+    inline void xor_side_to_move() {
+        zobrist_hash ^= ZOBRIST_SIDE_TO_MOVE;
     }
 
     inline void set_en_passant_target(Color color, Piece piece, Square from, Square to) {
+
+        // XOR out previous EP file (if any)
+        xor_en_passant();
+
+        // Reset EP target square (will be set below if needed)
+        en_passant_target = NO_SQUARE;
+
         // White moves a pawn 2 squares north
         if (
             color == WHITE
@@ -130,9 +160,8 @@ private:
             en_passant_target = to + 8; // Directly behind the black pawn (north)
         }
 
-        else {
-            en_passant_target = NO_SQUARE;
-        }
+        // XOR in new EP file (if any)
+        xor_en_passant();
     }
 
 
@@ -179,8 +208,14 @@ private:
 
 
     inline void update_castling_rights(Square from, Square to) {
+        // XOR out old castling rights
+        xor_castling_rights();
+
         // Use precomputed lookup table to update castling rights
         castling_rights &= ~castling_rights_updates[from];
         castling_rights &= ~castling_rights_updates[to];
+
+        // XOR in new castling rights
+        xor_castling_rights();
     }
 };
