@@ -8,7 +8,7 @@
 struct SearchLimits {
     int time;
     uint64_t nodes;
-    int depth;
+    SearchDepth depth;
 };
 
 struct SearchState {

@@ -5,10 +5,7 @@
 #include "types.hpp"
 #include "random.hpp"
 
-// Initialize zobrist numbers here
-// Board class keeps track of zobrist hash
-// Initialize hash during load from fen/reset
-// Upddate hash in make and unmake move for each feature
+// --- ZOBRIST NUMBERS ---
 
 const int CASTLING_RIGHTS_COMBINATIONS = 16;
 const int EN_PASSANT_TARGET_FILES = 8;
@@ -50,6 +47,65 @@ inline const ZobristEnPassantTargets ZOBRIST_EN_PASSANT_TARGETS = []() {
 
 inline const uint64_t ZOBRIST_SIDE_TO_MOVE = random_u64();
 
-struct TTEntry {
+// --- TRANSPOSITION TABLE ---
 
+struct TTEntry {
+    uint64_t hash;
+    Move best_move;
+    SearchDepth depth;
+    PositionScore score;
+    TTNode node;
+
+    // Use best_move = NULL_MOVE as sentinel value to indicate nonexistent entry
+    constexpr TTEntry() : best_move(NULL_MOVE) {}
 };
+
+struct TranspositionTable {
+    std::array<TTEntry, TRANSPOSITION_TABLE_SIZE> table;
+
+    TranspositionTable() {
+        clear();
+    }
+
+    void clear() {
+        table.fill(TTEntry{});
+    }
+
+    TTEntry& get_entry(uint64_t hash) {
+        uint64_t index = get_index(hash);
+        return table[index];
+    }
+
+    void add_entry(uint64_t hash, TTEntry entry) {
+        uint64_t index = get_index(hash);
+        table[index] = entry;
+    }
+
+    // The best_move field acts as a sentinel indicating whether a valid TT entry exists,
+    // avoiding the need to handle null pointers.
+    // We also verify that the stored position hash matches the current one to ensure
+    // the entry corresponds to the same position. This prevents hash collisions where
+    // two different positions share the same lower bits and map to the same table index.
+    bool is_valid_entry(uint64_t hash, TTEntry& entry) {
+        return entry.best_move != NULL_MOVE && hash == entry.hash;
+    }
+
+private:
+
+    inline uint64_t get_index(uint64_t hash) {
+        return hash & (TRANSPOSITION_TABLE_SIZE - 1);
+    }
+};
+
+
+
+
+/*
+Store:
+- Depth
+- Score
+- Type of Node
+- Best Move
+- Zobrist Key (to determine if it's the correct position)
+- Age (for overwriting positions)
+*/

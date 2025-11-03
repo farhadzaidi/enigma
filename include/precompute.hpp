@@ -300,11 +300,11 @@ constexpr int abs_val(int x) { return x > 0 ? x : -x;}
 constexpr Direction get_direction(Square a, Square b) {
     if (a == b) return NO_DIRECTION;
 
-    int a_rank = get_rank(a);
-    int a_file = get_file(a);
+    Rank a_rank = get_rank(a);
+    File a_file = get_file(a);
 
-    int b_rank = get_rank(b);
-    int b_file = get_file(b);
+    Rank b_rank = get_rank(b);
+    File b_file = get_file(b);
 
     // Check collinearity
     int dx = abs_val(a_file - b_file);
@@ -316,11 +316,11 @@ constexpr Direction get_direction(Square a, Square b) {
     );
     if (!are_colinear) return NO_DIRECTION;
 
-    int vertical = a_rank != b_rank
+    Direction vertical = a_rank != b_rank
         ? (a_rank < b_rank ? NORTH : SOUTH)
         : NO_DIRECTION;
     
-    int horizontal = a_file != b_file
+    Direction horizontal = a_file != b_file
         ? (a_file < b_file ? EAST : WEST)
         : NO_DIRECTION;
     

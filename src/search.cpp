@@ -81,7 +81,7 @@ static inline void order_moves(MoveList& moves, Move prev_best_move = NULL_MOVE)
 }
 
 template <SearchMode SM>
-static inline int quiescence_search(Board& b, int alpha, int beta) {
+static inline PositionScore quiescence_search(Board& b, PositionScore alpha, PositionScore beta) {
     ss.nodes++;
 
     if (should_stop_search<SM>()) {
@@ -96,7 +96,7 @@ static inline int quiescence_search(Board& b, int alpha, int beta) {
     // Additionally, we can stop the search early if the static evaluation is higher than the beta cutoff
     // This can only be done if we're not in check - otherwise we MUST make a move
     if (!in_check) {
-        int static_eval = evaluate(b);
+        PositionScore static_eval = evaluate(b);
         alpha = std::max(alpha, static_eval);
         if (alpha >= beta) {
             return beta;
@@ -117,7 +117,7 @@ static inline int quiescence_search(Board& b, int alpha, int beta) {
 
     for (Move move : moves) {
         b.make_move(move);
-        int score = -quiescence_search<SM>(b, -beta, -alpha);
+        PositionScore score = -quiescence_search<SM>(b, -beta, -alpha);
         b.unmake_move(move);
 
         if (ss.search_interrupted) {
@@ -134,7 +134,7 @@ static inline int quiescence_search(Board& b, int alpha, int beta) {
 }
 
 template <SearchMode SM>
-static inline int negamax(Board& b, int depth, int alpha, int beta) {
+static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore alpha, PositionScore beta) {
     ss.nodes++;
 
     if (should_stop_search<SM>()) {
@@ -164,7 +164,7 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
 
     for (Move move : moves) {
         b.make_move(move);
-        int score = -negamax<SM>(b, depth - 1, -beta, -alpha);
+        PositionScore score = -negamax<SM>(b, depth - 1, -beta, -alpha);
         b.unmake_move(move);
 
         // Discard the score and return early if the search has been interrupted
@@ -178,29 +178,29 @@ static inline int negamax(Board& b, int depth, int alpha, int beta) {
             break;
         }
     }
-    
+
     return alpha;
 }
 
 // Searches all root moves at a given depth and returns the best move
 template <SearchMode SM>
-static Move search_at_depth(Board& b, int depth, Move prev_best_move) {
+static Move search_at_depth(Board& b, SearchDepth depth, Move prev_best_move) {
     Move best_move;
 
     // Alpha will serve as our lower bound (best score so far at this depth)
-    int alpha = MIN_SCORE;
+    PositionScore alpha = MIN_SCORE;
 
     // Beta will serve as our upper bound - if we find a move better than beta
     // then that move is too good and our opponent won't allow it (it's worse
     // for them than their lower bound)
-    int beta = MAX_SCORE;
+    PositionScore beta = MAX_SCORE;
 
     MoveList moves = generate_moves<ALL>(b);
     order_moves<true>(moves, prev_best_move);
 
     for (Move move : moves) {
         b.make_move(move);
-        int score = -negamax<SM>(b, depth - 1, -beta, -alpha);
+        PositionScore score = -negamax<SM>(b, depth - 1, -beta, -alpha);
         b.unmake_move(move);
 
         // Same here - return early if the search is interrutpted, otherwise negate
@@ -241,7 +241,7 @@ Move search(Board& b, const SearchLimits& limits) {
         ss.deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(limits.time);
     }
 
-    int depth = 1;
+    SearchDepth depth = 1;
     Move best_move;
 
     // Iterative search loop

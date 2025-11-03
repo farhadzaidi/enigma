@@ -14,7 +14,7 @@ inline Move search_nodes(Board& b, uint64_t nodes) {
     return search<NODES>(b, {.nodes = nodes});
 }
 
-inline Move search_depth(Board& b, int depth) {
+inline Move search_depth(Board& b, SearchDepth depth) {
     return search<DEPTH>(b, {.depth = depth});
 }
 

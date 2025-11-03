@@ -48,12 +48,15 @@ constexpr int CHECKMATE_SCORE    =  32000;
 constexpr int STALEMATE_SCORE    =  0;
 constexpr int SEARCH_INTERRUPTED =  std::numeric_limits<int>::min() / 2;
 
+constexpr uint64_t TRANSPOSITION_TABLE_SIZE = uint64_t{1} << 20;
+
 // --- Type Definitions ---
 
 using Bitboard          = uint64_t;
 using MoveScore         = uint32_t;
 using MoveType          = uint16_t;
 using MoveFlag          = uint16_t;
+using PositionScore     = int16_t;
 using Square            = uint8_t;
 using Color             = uint8_t;
 using Piece             = uint8_t;
@@ -62,6 +65,8 @@ using Rank              = uint8_t;
 using File              = uint8_t;
 using CastleType        = uint8_t;
 using MoveSelectorPhase = uint8_t;
+using SearchDepth       = uint8_t;
+using TTNode            = uint8_t;
 using Direction         = int;
 using SearchMode        = int;
 using MoveGenMode       = int;
@@ -192,6 +197,12 @@ enum MoveGenModeEnum : MoveGenMode {
     ALL,
     QUIET_ONLY,
     CAPTURES_AND_PROMOTIONS
+};
+
+enum TTNodeEnum : TTNode {
+    EXACT,
+    FAIL_HIGH,
+    FAIL_LOW
 };
 
 // Ranks and Files

@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
             std::clog << "Error: Invalid depth\n";
             return EXIT_FAILURE;
         }
-        int depth = std::stoi(depth_str);
+        SearchDepth depth = std::stoi(depth_str);
 
         // Parse optional FEN
         Board b;

@@ -18,7 +18,7 @@ class Board;
 
 struct PerftEpdResult {
     std::string fen;
-    std::unordered_map<int, uint64_t> depth_nodes;
+    std::unordered_map<SearchDepth, uint64_t> depth_nodes;
 };
 
 struct EngineEpdResult {
@@ -29,8 +29,8 @@ struct EngineEpdResult {
 // Parsing
 
 constexpr Square get_square(int rank, int file) { return rank * BOARD_SIZE + file; }
-constexpr int get_rank(Square square) { return square / BOARD_SIZE; }
-constexpr int get_file(Square square) { return square % BOARD_SIZE; }
+constexpr Rank get_rank(Square square) { return square / BOARD_SIZE; }
+constexpr File get_file(Square square) { return square % BOARD_SIZE; }
 
 bool is_pos_int(const std::string& s);
 Square uci_to_index(const std::string& square);

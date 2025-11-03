@@ -385,14 +385,14 @@ PerftEpdResult parse_perft_epd_line(std::string line) {
     std::string rest = line.substr(pos + 1);
 
     std::istringstream iss(rest);
-    std::unordered_map<int, uint64_t> depth_nodes;
+    std::unordered_map<SearchDepth, uint64_t> depth_nodes;
 
     std::string depth_str;
     uint64_t nodes;
 
     // Parse all D[depth] [nodes] pairs
     while (iss >> depth_str >> nodes) {
-        int depth = std::stoi(depth_str.substr(1));
+        SearchDepth depth = std::stoi(depth_str.substr(1));
         depth_nodes[depth] = nodes;
     }
 

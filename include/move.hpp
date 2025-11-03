@@ -10,7 +10,7 @@
 
 struct Move {
     uint16_t move;
-    bool is_killer = false;
+    // bool is_killer = false;
 
     constexpr Move() : move(0) {}
 
