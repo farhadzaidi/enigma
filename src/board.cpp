@@ -31,6 +31,9 @@ void Board::reset() {
     fullmoves = 0;
     ply = 0;
     zobrist_hash = 0;
+
+    // Reset transposition table
+    TT.clear();
 }
 
 void Board::load_from_fen(const std::string& fen) {

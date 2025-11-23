@@ -42,12 +42,6 @@ constexpr int MAX_PLY   = 256;
 // Upper bound for the maximum number of moves we can generate at a given depth
 constexpr int MAX_MOVES = 256;
 
-constexpr int MAX_SCORE          =  30'000;
-constexpr int MIN_SCORE          = -MAX_SCORE;
-constexpr int CHECKMATE_SCORE    =  32000;
-constexpr int STALEMATE_SCORE    =  0;
-constexpr int SEARCH_INTERRUPTED =  std::numeric_limits<int>::min() / 2;
-
 constexpr uint64_t TRANSPOSITION_TABLE_SIZE = uint64_t{1} << 20;
 
 // --- Type Definitions ---
@@ -78,6 +72,14 @@ using ColorPieceToHistory = std::array<std::array<std::array<MoveScore, NUM_SQUA
 
 // from_to[from][to]
 using FromToHistory = std::array<std::array<MoveScore, NUM_SQUARES>, NUM_SQUARES>;
+
+// --- Scores ---
+constexpr PositionScore MAX_SCORE          =  30'000;
+constexpr PositionScore MIN_SCORE          = -MAX_SCORE;
+constexpr PositionScore CHECKMATE_SCORE    =  32'000;
+constexpr PositionScore STALEMATE_SCORE    =  0;
+constexpr PositionScore DUMMY_SCORE        = -32'700;
+constexpr PositionScore SEARCH_INTERRUPTED = DUMMY_SCORE;
 
 // --- Enums ---
 
@@ -202,7 +204,8 @@ enum MoveGenModeEnum : MoveGenMode {
 enum TTNodeEnum : TTNode {
     EXACT,
     FAIL_HIGH,
-    FAIL_LOW
+    FAIL_LOW,
+    NO_TT_ENTRY
 };
 
 // Ranks and Files

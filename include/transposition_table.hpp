@@ -56,8 +56,11 @@ struct TTEntry {
     PositionScore score;
     TTNode node;
 
-    // Use best_move = NULL_MOVE as sentinel value to indicate nonexistent entry
-    constexpr TTEntry() : best_move(NULL_MOVE) {}
+    constexpr TTEntry() : 
+        hash(0), best_move(NULL_MOVE), depth(0), score(DUMMY_SCORE), node(NO_TT_ENTRY) {}
+
+    constexpr TTEntry(uint64_t hash, Move best_move, SearchDepth depth, PositionScore score, TTNode node) : 
+        hash(hash), best_move(best_move), depth(depth), score(score), node(node) {}
 };
 
 struct TranspositionTable {
@@ -76,18 +79,16 @@ struct TranspositionTable {
         return table[index];
     }
 
-    void add_entry(uint64_t hash, TTEntry entry) {
-        uint64_t index = get_index(hash);
+    void add_entry(const TTEntry& entry) {
+        uint64_t index = get_index(entry.hash);
         table[index] = entry;
     }
 
-    // The best_move field acts as a sentinel indicating whether a valid TT entry exists,
-    // avoiding the need to handle null pointers.
-    // We also verify that the stored position hash matches the current one to ensure
+    // We verify that the stored position hash matches the current one to ensure
     // the entry corresponds to the same position. This prevents hash collisions where
     // two different positions share the same lower bits and map to the same table index.
-    bool is_valid_entry(uint64_t hash, TTEntry& entry) {
-        return entry.best_move != NULL_MOVE && hash == entry.hash;
+    bool is_valid_entry(uint64_t hash, const TTEntry& entry) {
+        return entry.node != NO_TT_ENTRY && hash == entry.hash;
     }
 
 private:
@@ -97,15 +98,4 @@ private:
     }
 };
 
-
-
-
-/*
-Store:
-- Depth
-- Score
-- Type of Node
-- Best Move
-- Zobrist Key (to determine if it's the correct position)
-- Age (for overwriting positions)
-*/
+inline TranspositionTable TT;

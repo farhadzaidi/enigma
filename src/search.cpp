@@ -6,6 +6,7 @@
 #include "board.hpp"
 #include "move_generator.hpp"
 #include "evaluate.hpp"
+#include "transposition_table.hpp"
 
 /*
 Search
@@ -67,13 +68,26 @@ static inline int score_move(Move m) {
 }
 
 template <bool UsePrevBestMove>
-static inline void order_moves(MoveList& moves, Move prev_best_move = NULL_MOVE) {
+static inline void order_moves(Board& b, MoveList& moves, Move prev_best_move = NULL_MOVE) {
+    // Store the TT move if we have a hit
+    Move tt_move;
+    TTEntry tt_entry = TT.get_entry(b.zobrist_hash);
+    if (TT.is_valid_entry(b.zobrist_hash, tt_entry)) {
+        tt_move = tt_entry.best_move;
+    }
+
     // Prioritize promotions, captures, then quiet moves (in that order)
-    std::sort(moves.begin(), moves.end(), [prev_best_move](const Move& m1, const Move& m2) {
+    std::sort(moves.begin(), moves.end(), [prev_best_move, tt_move](const Move& m1, const Move& m2) {
         // Always try the previous best move first if we have it
         if constexpr (UsePrevBestMove) {
             if (m1 == prev_best_move) return true;
             if (m2 == prev_best_move) return false;
+        }
+
+        // Then try the TT move if we have one
+        if (tt_move != NULL_MOVE) {
+            if (m1 == tt_move) return true;
+            if (m2 == tt_move) return false;
         }
 
         return score_move(m1) > score_move(m2);
@@ -147,7 +161,7 @@ static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore a
     }
 
     MoveList moves = generate_moves<ALL>(b);
-    order_moves<false>(moves);
+    order_moves<false>(b, moves);
 
     // Side to move has no remaining moves
     if (moves.is_empty()) {
@@ -162,6 +176,28 @@ static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore a
         }
     }
 
+    // Probe transposition table
+    TTEntry& tt_entry = TT.get_entry(b.zobrist_hash);
+    if (TT.is_valid_entry(b.zobrist_hash, tt_entry)) {
+        // We can use the TT entry score to cutoff early if the depth of the entry
+        // is greater than or equal to the current depth of this node.
+        // Furthermore, we must be able to cutoff based on the type of the node.
+        if (
+            tt_entry.depth >= depth
+            && (
+                tt_entry.node == EXACT
+                || (tt_entry.node == FAIL_HIGH && tt_entry.score >= beta)
+                || (tt_entry.node == FAIL_LOW && tt_entry.score <= alpha)
+            )
+        ) {
+            return tt_entry.score;
+        }
+    }
+
+    // Store original alpha value for this node to determine if it's a fail-low TT node
+    PositionScore original_alpha = alpha;
+    Move best_move;
+
     for (Move move : moves) {
         b.make_move(move);
         PositionScore score = -negamax<SM>(b, depth - 1, -beta, -alpha);
@@ -173,11 +209,28 @@ static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore a
         }
 
         // Update lower bound and determine if we need to prune this branch
-        alpha = std::max(alpha, score);
+        if (score > alpha) {
+            alpha = score;
+            best_move = move;
+        }
+
         if (alpha >= beta) {
             break;
         }
     }
+
+    // Determine the type of entry based on the final score
+    TTNode tt_node;
+    if (alpha >= beta) {
+        tt_node = FAIL_HIGH;
+    } else if (alpha <= original_alpha) {
+        tt_node = FAIL_LOW;
+    } else {
+        tt_node = EXACT;
+    }
+
+    // Store TT entry
+    TT.add_entry(TTEntry{b.zobrist_hash, best_move, depth, alpha, tt_node});
 
     return alpha;
 }
@@ -196,7 +249,7 @@ static Move search_at_depth(Board& b, SearchDepth depth, Move prev_best_move) {
     PositionScore beta = MAX_SCORE;
 
     MoveList moves = generate_moves<ALL>(b);
-    order_moves<true>(moves, prev_best_move);
+    order_moves<true>(b, moves, prev_best_move);
 
     for (Move move : moves) {
         b.make_move(move);
