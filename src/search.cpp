@@ -10,7 +10,6 @@
 
 /*
 Search
-4. TT + zobrist hashing
 5. Killer moves
 6. Principal variation search + aspiration windows
 7. Enhanced move ordering/move selector (MVV-LVA, history heuristic, phases, SEE)
@@ -92,6 +91,29 @@ static inline void order_moves(Board& b, MoveList& moves, Move prev_best_move = 
 
         return score_move(m1) > score_move(m2);
     });
+}
+
+// Normalizes checkmate scores from absolute ply to relative distance
+// This helps determine how far the mate is from the current ply if this score is retrieved
+// from the transposition table
+static inline PositionScore normalize_tt_score(PositionScore score, int ply) {
+    if (score >= CHECKMATE_SCORE - MAX_PLY) {
+        // Winning checkmate - add current ply to score to encode relative distance to mate
+        return score + ply;
+    } else if (score <= -CHECKMATE_SCORE + MAX_PLY) {
+        // Losing checkmate - same as above, but we subtract ply here
+        return score - ply;
+    }
+
+    // For non-checkmate scores, just return the score as is
+    return score;
+}
+
+// Denormalizes checkmate score from TT (reverse of above)
+static inline PositionScore denormalize_tt_score(PositionScore score, int ply) {
+    if (score >= CHECKMATE_SCORE - MAX_PLY) return score - ply;
+    if (score <= -CHECKMATE_SCORE + MAX_PLY) return score + ply;
+    return score;
 }
 
 template <SearchMode SM>
@@ -179,6 +201,9 @@ static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore a
     // Probe transposition table
     TTEntry& tt_entry = TT.get_entry(b.zobrist_hash);
     if (TT.is_valid_entry(b.zobrist_hash, tt_entry)) {
+        // Denormalize score before returning
+        PositionScore tt_score = denormalize_tt_score(tt_entry.score, b.ply);
+
         // We can use the TT entry score to cutoff early if the depth of the entry
         // is greater than or equal to the current depth of this node.
         // Furthermore, we must be able to cutoff based on the type of the node.
@@ -186,11 +211,11 @@ static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore a
             tt_entry.depth >= depth
             && (
                 tt_entry.node == EXACT
-                || (tt_entry.node == FAIL_HIGH && tt_entry.score >= beta)
-                || (tt_entry.node == FAIL_LOW && tt_entry.score <= alpha)
+                || (tt_entry.node == FAIL_HIGH && tt_score >= beta)
+                || (tt_entry.node == FAIL_LOW && tt_score <= alpha)
             )
         ) {
-            return tt_entry.score;
+            return tt_score;
         }
     }
 
@@ -229,8 +254,11 @@ static inline PositionScore negamax(Board& b, SearchDepth depth, PositionScore a
         tt_node = EXACT;
     }
 
+    // Normalize score before storing
+    PositionScore tt_score = normalize_tt_score(alpha, b.ply);
+
     // Store TT entry
-    TT.add_entry(TTEntry{b.zobrist_hash, best_move, depth, alpha, tt_node});
+    TT.add_entry(TTEntry{b.zobrist_hash, best_move, depth, tt_score, tt_node});
 
     return alpha;
 }
