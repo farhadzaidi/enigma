@@ -121,6 +121,7 @@ def build_cmd(engine_a, engine_b, engine_a_name, engine_b_name, **options):
             games: Number of games (int)
             repeat: Enable repeat flag (bool)
             concurrency: Concurrency level (int)
+            debug: Enable debug output (bool)
     """
     cmd = [
         str(CUTECHESS_CLI_BINARY_PATH),
@@ -174,6 +175,9 @@ def build_cmd(engine_a, engine_b, engine_a_name, engine_b_name, **options):
 
     if 'concurrency' in options:
         cmd.extend(['-concurrency', str(options['concurrency'])])
+
+    if options.get('debug', False):
+        cmd.append('-debug')
 
     return cmd
 
@@ -344,7 +348,8 @@ elif mode == 'debug':
     cmd = build_cmd(
         engine_a, engine_b, engine_a_name, engine_b_name,
         tc=f'{DEBUG_TIME}+{DEBUG_INCREMENT}',
-        games=DEBUG_GAMES
+        games=DEBUG_GAMES,
+        debug=True
     )
 
     print_config(

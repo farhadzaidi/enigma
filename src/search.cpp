@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <chrono>
+#include <iostream>
 
 #include "types.hpp"
 #include "search.hpp"
@@ -333,6 +334,7 @@ Move search(Board& b, const SearchLimits& limits) {
         }
 
         Move best_move_at_depth = search_at_depth<SM>(b, depth, best_move);
+
         if (best_move_at_depth != NULL_MOVE) {
             best_move = best_move_at_depth;
         }
